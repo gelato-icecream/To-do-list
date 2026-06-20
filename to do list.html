@@ -262,6 +262,19 @@
             color: var(--text-secondary);
         }
 
+        .task-type {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
         /* Modals */
         .modal-overlay {
             position: fixed;
@@ -465,6 +478,9 @@
             <div class="input-group">
                 <input type="text" id="task-input" placeholder="What needs to be done?">
             </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <input type="text" id="task-type-input" placeholder="Type (e.g. to-buy) - optional">
+            </div>
             <div class="modal-actions">
                 <button class="btn-text" onclick="hideModal('add-task-modal')">Cancel</button>
                 <button class="btn-primary" onclick="addTask()">Add</button>
@@ -609,6 +625,7 @@
                             </div>
                             <div class="item-info">
                                 <h4>${escapeHtml(task.text)}</h4>
+                                ${task.type && task.type.toLowerCase() !== 'normal' ? `<span class="task-type">${escapeHtml(task.type)}</span>` : ''}
                             </div>
                         </div>
                         <button class="icon-btn" onclick="deleteTask(${index})" aria-label="Delete">
@@ -627,8 +644,12 @@
             if (currentListIndex === null) return;
             
             const text = taskInput.value.trim();
+            const typeInput = document.getElementById('task-type-input');
+            const typeValue = typeInput ? typeInput.value.trim() : '';
+            const type = typeValue ? typeValue : "normal";
+
             if (text) {
-                lists[currentListIndex].tasks.push({ text: text, completed: false });
+                lists[currentListIndex].tasks.push({ text: text, completed: false, type: type });
                 saveState();
                 hideModal('add-task-modal');
             }
@@ -660,14 +681,15 @@
 
         function showModal(modalId) {
             const modal = document.getElementById(modalId);
-            const input = modal.querySelector('input');
-            if (input) input.value = '';
+            const inputs = modal.querySelectorAll('input');
+            inputs.forEach(input => input.value = '');
+            const firstInput = inputs.length > 0 ? inputs[0] : null;
             
             modal.style.display = 'flex';
             // Slight delay to allow display:flex to apply before adding active class for transition
             setTimeout(() => {
                 modal.classList.add('active');
-                if (input) input.focus();
+                if (firstInput) firstInput.focus();
             }, 10);
         }
 
