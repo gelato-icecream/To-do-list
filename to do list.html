@@ -315,7 +315,7 @@
             color: var(--text-primary);
         }
 
-        .input-group input {
+        .input-group input, .input-group select {
             width: 100%;
             background: rgba(128, 128, 128, 0.1);
             border: 1px solid var(--border);
@@ -327,7 +327,17 @@
             transition: border-color 0.2s;
         }
 
-        .input-group input:focus {
+        .input-group select {
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .input-group select option {
+            background: var(--bg-modal);
+            color: var(--text-primary);
+        }
+
+        .input-group input:focus, .input-group select:focus {
             border-color: var(--accent);
         }
 
@@ -367,6 +377,44 @@
         .empty-state svg {
             margin-bottom: 15px;
             opacity: 0.5;
+        }
+        
+        /* Tabs */
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            scrollbar-width: none;
+        }
+        
+        .tabs-container::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: var(--transition);
+        }
+        
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+        
+        .tab.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
         }
         
         .progress-bar-container {
@@ -429,14 +477,23 @@
                         <p id="current-list-stats">0 of 0 tasks completed</p>
                     </div>
                 </div>
-                <button class="icon-btn text-danger" onclick="deleteCurrentList()" aria-label="Delete List">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                    </svg>
-                </button>
+                <div style="display: flex; gap: 5px;">
+                    <button class="icon-btn" onclick="openListSettings()" aria-label="List Settings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
+                    <button class="icon-btn text-danger" onclick="deleteCurrentList()" aria-label="Delete List">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                    </button>
+                </div>
             </header>
 
             <main>
+                <div id="list-tabs" class="tabs-container" style="display: none;"></div>
                 <div id="tasks-list" class="items-list">
                     <!-- Tasks will be rendered here -->
                 </div>
@@ -454,6 +511,28 @@
                     <path d="M12 5v14M5 12h14"/>
                 </svg>
             </button>
+        </div>
+    </div>
+    
+    <!-- List Settings Modal -->
+    <div class="modal-overlay" id="list-settings-modal">
+        <div class="modal">
+            <h2>List Settings</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="font-size: 16px; margin-bottom: 10px; color: var(--text-primary);">Manage Tabs</h3>
+                <div class="input-group" style="display: flex; gap: 10px;">
+                    <input type="text" id="new-tab-input" placeholder="New tab name (e.g. To-do)">
+                    <button class="btn-primary" onclick="addTab()">Add</button>
+                </div>
+                <div id="settings-tabs-list" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Existing tabs will be listed here with delete buttons -->
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="hideModal('list-settings-modal')">Done</button>
+            </div>
         </div>
     </div>
 
@@ -479,7 +558,12 @@
                 <input type="text" id="task-input" placeholder="What needs to be done?">
             </div>
             <div class="input-group" style="margin-top: 15px;">
-                <input type="text" id="task-type-input" placeholder="Type (e.g. to-buy) - optional">
+                <input type="text" id="task-desc-input" placeholder="Description (optional)">
+            </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <select id="task-tab-select">
+                    <option value="normal">General</option>
+                </select>
             </div>
             <div class="modal-actions">
                 <button class="btn-text" onclick="hideModal('add-task-modal')">Cancel</button>
@@ -507,6 +591,7 @@
         }
         
         let currentListIndex = null;
+        let currentTab = "All";
 
         // DOM Elements
         const listsGrid = document.getElementById('lists-grid');
@@ -593,6 +678,77 @@
                 }
             }
         }
+        
+        // Settings Functions
+        function openListSettings() {
+            if (currentListIndex === null) return;
+            const currentList = lists[currentListIndex];
+            
+            if (!currentList.tabs) {
+                currentList.tabs = [];
+            }
+            
+            renderSettingsTabs();
+            showModal('list-settings-modal');
+        }
+
+        function renderSettingsTabs() {
+            if (currentListIndex === null) return;
+            const currentList = lists[currentListIndex];
+            const container = document.getElementById('settings-tabs-list');
+            container.innerHTML = '';
+            
+            if (!currentList.tabs || currentList.tabs.length === 0) {
+                container.innerHTML = '<p style="font-size: 13px; color: var(--text-secondary);">No custom tabs added yet.</p>';
+                return;
+            }
+            
+            currentList.tabs.forEach((tab, index) => {
+                const el = document.createElement('div');
+                el.style.display = 'flex';
+                el.style.justifyContent = 'space-between';
+                el.style.alignItems = 'center';
+                el.style.background = 'rgba(255, 255, 255, 0.05)';
+                el.style.padding = '8px 12px';
+                el.style.borderRadius = '8px';
+                
+                el.innerHTML = `
+                    <span>${escapeHtml(tab)}</span>
+                    <button class="icon-btn" onclick="deleteTab(${index})" style="padding: 4px; color: var(--danger);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                    </button>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function addTab() {
+            if (currentListIndex === null) return;
+            const input = document.getElementById('new-tab-input');
+            const name = input.value.trim();
+            if (name) {
+                const currentList = lists[currentListIndex];
+                if (!currentList.tabs) currentList.tabs = [];
+                if (!currentList.tabs.includes(name)) {
+                    currentList.tabs.push(name);
+                    saveState();
+                    renderSettingsTabs();
+                }
+                input.value = '';
+            }
+        }
+
+        function deleteTab(index) {
+            if (currentListIndex === null) return;
+            const currentList = lists[currentListIndex];
+            if (currentList.tabs && currentList.tabs.length > index) {
+                currentList.tabs.splice(index, 1);
+                saveState();
+                renderSettingsTabs();
+            }
+        }
 
         // List Screen Functions
         function renderTasks() {
@@ -605,14 +761,68 @@
             const completedTasks = currentList.tasks.filter(t => t.completed).length;
             currentListStats.textContent = `${completedTasks} of ${totalTasks} tasks completed`;
             
+            // Get unique types for tabs
+            const types = ["All"];
+            
+            if (currentList.tabs) {
+                currentList.tabs.forEach(t => {
+                    if (!types.includes(t)) types.push(t);
+                });
+            }
+            
+            // Auto-migrate any existing types into explicit tabs so they aren't lost
+            currentList.tasks.forEach(task => {
+                const t = task.type || "normal";
+                if (t !== "normal" && !types.includes(t)) {
+                    types.push(t);
+                    if (!currentList.tabs) currentList.tabs = [];
+                    currentList.tabs.push(t);
+                }
+            });
+            
+            if (!types.includes(currentTab)) {
+                currentTab = "All";
+            }
+            
+            // Render tabs
+            const tabsContainer = document.getElementById('list-tabs');
+            if (tabsContainer) {
+                tabsContainer.innerHTML = '';
+                if (types.length > 2 || (types.length === 2 && types[1] !== "normal")) {
+                    tabsContainer.style.display = 'flex';
+                    types.forEach(type => {
+                        const tabEl = document.createElement('button');
+                        tabEl.className = `tab ${currentTab === type ? 'active' : ''}`;
+                        tabEl.textContent = type === "normal" ? "General" : type;
+                        tabEl.onclick = () => {
+                            currentTab = type;
+                            renderTasks();
+                        };
+                        tabsContainer.appendChild(tabEl);
+                    });
+                } else {
+                    tabsContainer.style.display = 'none';
+                }
+            }
+            
             tasksList.innerHTML = '';
             
-            if (totalTasks === 0) {
+            const filteredTasks = currentTab === "All" 
+                ? currentList.tasks 
+                : currentList.tasks.filter(t => (t.type || "normal") === currentTab);
+            
+            if (filteredTasks.length === 0) {
                 tasksEmpty.style.display = 'block';
+                if (currentTab !== "All") {
+                    tasksEmpty.querySelector('p').textContent = `No tasks in ${currentTab}.`;
+                } else {
+                    tasksEmpty.querySelector('p').textContent = 'No tasks in this list. Tap the + button to add one.';
+                }
             } else {
                 tasksEmpty.style.display = 'none';
                 
-                currentList.tasks.forEach((task, index) => {
+                filteredTasks.forEach(task => {
+                    const index = currentList.tasks.indexOf(task);
                     const itemEl = document.createElement('div');
                     itemEl.className = `item ${task.completed ? 'completed' : ''}`;
                     
@@ -625,7 +835,8 @@
                             </div>
                             <div class="item-info">
                                 <h4>${escapeHtml(task.text)}</h4>
-                                ${task.type && task.type.toLowerCase() !== 'normal' ? `<span class="task-type">${escapeHtml(task.type)}</span>` : ''}
+                                ${task.desc ? `<p style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(task.desc)}</p>` : ''}
+                                ${task.type && task.type.toLowerCase() !== 'normal' && currentTab === "All" ? `<span class="task-type">${escapeHtml(task.type)}</span>` : ''}
                             </div>
                         </div>
                         <button class="icon-btn" onclick="deleteTask(${index})" aria-label="Delete">
@@ -643,13 +854,18 @@
         function addTask() {
             if (currentListIndex === null) return;
             
-            const text = taskInput.value.trim();
-            const typeInput = document.getElementById('task-type-input');
-            const typeValue = typeInput ? typeInput.value.trim() : '';
-            const type = typeValue ? typeValue : "normal";
+            let text = taskInput.value.trim();
+            const descInput = document.getElementById('task-desc-input');
+            const desc = descInput ? descInput.value.trim() : '';
+            
+            const tabSelect = document.getElementById('task-tab-select');
+            let type = tabSelect ? tabSelect.value : "normal";
 
             if (text) {
-                lists[currentListIndex].tasks.push({ text: text, completed: false, type: type });
+                lists[currentListIndex].tasks.push({ text: text, desc: desc, completed: false, type: type });
+                if (currentTab !== "All" && type !== currentTab) {
+                    currentTab = "All"; // Switch to All to show the new item if type doesn't match tab
+                }
                 saveState();
                 hideModal('add-task-modal');
             }
@@ -683,6 +899,25 @@
             const modal = document.getElementById(modalId);
             const inputs = modal.querySelectorAll('input');
             inputs.forEach(input => input.value = '');
+            
+            if (modalId === 'add-task-modal') {
+                const select = document.getElementById('task-tab-select');
+                if (select && currentListIndex !== null) {
+                    select.innerHTML = '<option value="normal">General</option>';
+                    const currentList = lists[currentListIndex];
+                    if (currentList.tabs) {
+                        currentList.tabs.forEach(tab => {
+                            select.innerHTML += `<option value="${escapeHtml(tab)}">${escapeHtml(tab)}</option>`;
+                        });
+                    }
+                    if (currentTab !== 'All' && currentTab !== 'normal') {
+                        select.value = currentTab;
+                    } else {
+                        select.value = 'normal';
+                    }
+                }
+            }
+            
             const firstInput = inputs.length > 0 ? inputs[0] : null;
             
             modal.style.display = 'flex';
@@ -719,6 +954,13 @@
         taskInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addTask();
         });
+        
+        const newTabInput = document.getElementById('new-tab-input');
+        if (newTabInput) {
+            newTabInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addTab();
+            });
+        }
 
         // Close modals when clicking outside
         document.querySelectorAll('.modal-overlay').forEach(modal => {
