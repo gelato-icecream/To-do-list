@@ -561,6 +561,9 @@
                 <input type="text" id="task-desc-input" placeholder="Description (optional)">
             </div>
             <div class="input-group" style="margin-top: 15px;">
+                <input type="number" id="task-qty-input" placeholder="Quantity (optional)" min="1">
+            </div>
+            <div class="input-group" style="margin-top: 15px;">
                 <select id="task-tab-select">
                     <option value="normal">General</option>
                 </select>
@@ -568,6 +571,32 @@
             <div class="modal-actions">
                 <button class="btn-text" onclick="hideModal('add-task-modal')">Cancel</button>
                 <button class="btn-primary" onclick="addTask()">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div class="modal-overlay" id="edit-task-modal">
+        <div class="modal">
+            <h2>Edit Task</h2>
+            <input type="hidden" id="edit-task-index">
+            <div class="input-group">
+                <input type="text" id="edit-task-input" placeholder="What needs to be done?">
+            </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <input type="text" id="edit-task-desc-input" placeholder="Description (optional)">
+            </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <input type="number" id="edit-task-qty-input" placeholder="Quantity (optional)" min="1">
+            </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <select id="edit-task-tab-select">
+                    <option value="normal">General</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-text" onclick="hideModal('edit-task-modal')">Cancel</button>
+                <button class="btn-primary" onclick="saveEditTask()">Save</button>
             </div>
         </div>
     </div>
@@ -834,16 +863,24 @@
                                 </svg>
                             </div>
                             <div class="item-info">
-                                <h4>${escapeHtml(task.text)}</h4>
+                                <h4>${escapeHtml(task.text)} ${task.qty ? `<span style="font-size: 14px; color: var(--accent); margin-left: 5px;">x${escapeHtml(task.qty)}</span>` : ''}</h4>
                                 ${task.desc ? `<p style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(task.desc)}</p>` : ''}
                                 ${task.type && task.type.toLowerCase() !== 'normal' && currentTab === "All" ? `<span class="task-type">${escapeHtml(task.type)}</span>` : ''}
                             </div>
                         </div>
-                        <button class="icon-btn" onclick="deleteTask(${index})" aria-label="Delete">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                            </svg>
-                        </button>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="icon-btn" onclick="openEditTask(${index})" aria-label="Edit">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" onclick="deleteTask(${index})" aria-label="Delete">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                </svg>
+                            </button>
+                        </div>
                     `;
                     
                     tasksList.appendChild(itemEl);
@@ -858,16 +895,69 @@
             const descInput = document.getElementById('task-desc-input');
             const desc = descInput ? descInput.value.trim() : '';
             
+            const qtyInput = document.getElementById('task-qty-input');
+            const qty = qtyInput && qtyInput.value ? qtyInput.value : '';
+            
             const tabSelect = document.getElementById('task-tab-select');
             let type = tabSelect ? tabSelect.value : "normal";
 
             if (text) {
-                lists[currentListIndex].tasks.push({ text: text, desc: desc, completed: false, type: type });
+                lists[currentListIndex].tasks.push({ text: text, desc: desc, qty: qty, completed: false, type: type });
                 if (currentTab !== "All" && type !== currentTab) {
                     currentTab = "All"; // Switch to All to show the new item if type doesn't match tab
                 }
                 saveState();
                 hideModal('add-task-modal');
+            }
+        }
+
+        function openEditTask(index) {
+            if (currentListIndex === null) return;
+            const task = lists[currentListIndex].tasks[index];
+            
+            document.getElementById('edit-task-index').value = index;
+            document.getElementById('edit-task-input').value = task.text;
+            document.getElementById('edit-task-desc-input').value = task.desc || '';
+            document.getElementById('edit-task-qty-input').value = task.qty || '';
+            
+            const select = document.getElementById('edit-task-tab-select');
+            if (select) {
+                select.innerHTML = '<option value="normal">General</option>';
+                const currentList = lists[currentListIndex];
+                if (currentList.tabs) {
+                    currentList.tabs.forEach(tab => {
+                        select.innerHTML += `<option value="${escapeHtml(tab)}">${escapeHtml(tab)}</option>`;
+                    });
+                }
+                select.value = task.type || 'normal';
+            }
+            
+            showModal('edit-task-modal');
+        }
+
+        function saveEditTask() {
+            if (currentListIndex === null) return;
+            
+            const index = document.getElementById('edit-task-index').value;
+            if (index === '') return;
+            
+            let text = document.getElementById('edit-task-input').value.trim();
+            const desc = document.getElementById('edit-task-desc-input').value.trim();
+            const qty = document.getElementById('edit-task-qty-input').value;
+            const type = document.getElementById('edit-task-tab-select').value;
+
+            if (text) {
+                lists[currentListIndex].tasks[index].text = text;
+                lists[currentListIndex].tasks[index].desc = desc;
+                lists[currentListIndex].tasks[index].qty = qty;
+                lists[currentListIndex].tasks[index].type = type;
+                
+                if (currentTab !== "All" && type !== currentTab) {
+                    currentTab = "All";
+                }
+                
+                saveState();
+                hideModal('edit-task-modal');
             }
         }
 
@@ -954,6 +1044,13 @@
         taskInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addTask();
         });
+
+        const editTaskInput = document.getElementById('edit-task-input');
+        if (editTaskInput) {
+            editTaskInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') saveEditTask();
+            });
+        }
         
         const newTabInput = document.getElementById('new-tab-input');
         if (newTabInput) {
