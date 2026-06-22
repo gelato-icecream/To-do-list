@@ -988,7 +988,10 @@
         function showModal(modalId) {
             const modal = document.getElementById(modalId);
             const inputs = modal.querySelectorAll('input');
-            inputs.forEach(input => input.value = '');
+            
+            if (modalId !== 'edit-task-modal') {
+                inputs.forEach(input => input.value = '');
+            }
             
             if (modalId === 'add-task-modal') {
                 const select = document.getElementById('task-tab-select');
@@ -1008,7 +1011,7 @@
                 }
             }
             
-            const firstInput = inputs.length > 0 ? inputs[0] : null;
+            const firstInput = Array.from(inputs).find(i => i.type !== 'hidden');
             
             modal.style.display = 'flex';
             // Slight delay to allow display:flex to apply before adding active class for transition
