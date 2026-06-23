@@ -1118,6 +1118,7 @@
                                         </div>
                                     </h4>
                                     ${task.desc ? `<p style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(task.desc)}</p>` : ''}
+                                    ${task.type && task.type.toLowerCase() !== 'normal' && currentTab === "All" ? `<span class="task-type" style="margin-top: 6px; display: inline-block;">${escapeHtml(task.type)}</span>` : ''}
                                 </div>
                                 <div style="display: flex; gap: 5px;">
                                     <button class="icon-btn" onclick="openEditTask(${index})" aria-label="Edit">
