@@ -152,9 +152,24 @@
         }
 
         .card-grid {
-            display: grid;
+            display: flex;
+            flex-direction: column;
             gap: 15px;
-            grid-template-columns: 1fr;
+        }
+
+        .dashboard-group-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 20px 0 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 5px;
+        }
+        
+        .dashboard-group-header:first-child {
+            margin-top: 5px;
         }
 
         .card {
@@ -595,10 +610,11 @@
             <h2>List Settings</h2>
             
             <div style="margin-bottom: 20px;">
-                <h3 style="font-size: 16px; margin-bottom: 10px; color: var(--text-primary);">List Name</h3>
-                <div class="input-group" style="display: flex; gap: 10px;">
+                <h3 style="font-size: 16px; margin-bottom: 10px; color: var(--text-primary);">List Name & Folder</h3>
+                <div class="input-group" style="display: flex; gap: 10px; flex-direction: column;">
                     <input type="text" id="edit-list-name-input" placeholder="List Name">
-                    <button class="btn-primary" onclick="renameList()">Save</button>
+                    <input type="text" id="edit-list-folder-input" placeholder="Folder (optional)">
+                    <button class="btn-primary" onclick="renameList()" style="align-self: flex-end;">Save</button>
                 </div>
             </div>
 
@@ -625,6 +641,9 @@
             <h2>Create New List</h2>
             <div class="input-group">
                 <input type="text" id="list-input" placeholder="e.g. Groceries, Work, Home">
+            </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <input type="text" id="list-folder-input" placeholder="Folder (optional)">
             </div>
             <div class="modal-actions">
                 <button class="btn-text" onclick="hideModal('add-list-modal')">Cancel</button>
@@ -756,38 +775,66 @@
             } else {
                 dashboardEmpty.style.display = 'none';
                 
+                // Group lists by folder
+                const folders = {};
                 lists.forEach((list, index) => {
-                    const totalTasks = list.tasks.length;
-                    const completedTasks = list.tasks.filter(t => t.completed).length;
-                    const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+                    const folderName = list.folder || 'Other';
+                    if (!folders[folderName]) folders[folderName] = [];
+                    folders[folderName].push({ list, index });
+                });
+                
+                // Sort folders: 'Other' at the end, rest alphabetical
+                const folderNames = Object.keys(folders).sort((a, b) => {
+                    if (a === 'Other') return 1;
+                    if (b === 'Other') return -1;
+                    return a.localeCompare(b);
+                });
+                
+                folderNames.forEach(folderName => {
+                    // Only show headers if there's more than one folder, or if the only folder is not 'Other'
+                    if (folderNames.length > 1 || folderName !== 'Other') {
+                        const headerEl = document.createElement('h3');
+                        headerEl.className = 'dashboard-group-header';
+                        headerEl.textContent = folderName;
+                        listsGrid.appendChild(headerEl);
+                    }
                     
-                    const cardEl = document.createElement('div');
-                    cardEl.className = 'card';
-                    cardEl.onclick = () => openList(index);
-                    
-                    cardEl.innerHTML = `
-                        <div style="width: 100%;">
-                            <div class="card-info">
-                                <h3>${escapeHtml(list.name)}</h3>
-                                <p>${completedTasks} of ${totalTasks} completed</p>
+                    folders[folderName].forEach(({ list, index }) => {
+                        const totalTasks = list.tasks.length;
+                        const completedTasks = list.tasks.filter(t => t.completed).length;
+                        const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+                        
+                        const cardEl = document.createElement('div');
+                        cardEl.className = 'card';
+                        cardEl.onclick = () => openList(index);
+                        
+                        cardEl.innerHTML = `
+                            <div style="width: 100%;">
+                                <div class="card-info">
+                                    <h3>${escapeHtml(list.name)}</h3>
+                                    <p>${completedTasks} of ${totalTasks} completed</p>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar" style="width: ${progressPercentage}%"></div>
+                                </div>
                             </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar" style="width: ${progressPercentage}%"></div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    listsGrid.appendChild(cardEl);
+                        `;
+                        
+                        listsGrid.appendChild(cardEl);
+                    });
                 });
             }
         }
 
         function addList() {
             const name = listInput.value.trim();
+            const folderInput = document.getElementById('list-folder-input');
+            const folder = folderInput ? folderInput.value.trim() : '';
             if (name) {
                 lists.push({
                     id: Date.now(),
                     name: name,
+                    folder: folder,
                     tasks: []
                 });
                 saveState();
@@ -818,6 +865,10 @@
             const currentList = lists[currentListIndex];
             
             document.getElementById('edit-list-name-input').value = currentList.name;
+            const folderInput = document.getElementById('edit-list-folder-input');
+            if (folderInput) {
+                folderInput.value = currentList.folder || '';
+            }
             
             if (!currentList.tabs) {
                 currentList.tabs = [];
@@ -830,8 +881,12 @@
         function renameList() {
             if (currentListIndex === null) return;
             const newName = document.getElementById('edit-list-name-input').value.trim();
+            const folderInput = document.getElementById('edit-list-folder-input');
+            const newFolder = folderInput ? folderInput.value.trim() : '';
+            
             if (newName) {
                 lists[currentListIndex].name = newName;
+                lists[currentListIndex].folder = newFolder;
                 document.getElementById('current-list-title').textContent = newName;
                 saveState();
             }
