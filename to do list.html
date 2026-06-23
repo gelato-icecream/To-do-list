@@ -681,6 +681,15 @@
                     <option value="normal">General</option>
                 </select>
             </div>
+            <div class="input-group" id="edit-is-group-container" style="margin-top: 15px; display: flex; align-items: center; gap: 12px; background: rgba(128, 128, 128, 0.1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; cursor: pointer;" onclick="toggleEditGroupCheckbox()">
+                <div class="checkbox" id="edit-task-is-group-ui">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <span style="user-select: none; color: var(--text-primary); font-size: 16px;">Make this a Group Task</span>
+                <input type="hidden" id="edit-task-is-group-input" value="false">
+            </div>
             <div class="modal-actions">
                 <button class="btn-text" onclick="hideModal('edit-task-modal')">Cancel</button>
                 <button class="btn-primary" onclick="saveEditTask()">Save</button>
@@ -1165,6 +1174,20 @@
                 select.value = task.type || 'normal';
             }
             
+            const groupContainer = document.getElementById('edit-is-group-container');
+            const groupInput = document.getElementById('edit-task-is-group-input');
+            const groupUi = document.getElementById('edit-task-is-group-ui');
+            
+            if (groupContainer && groupInput && groupUi) {
+                groupContainer.style.display = 'flex';
+                groupInput.value = task.isGroup ? "true" : "false";
+                if (task.isGroup) {
+                    groupUi.classList.add('checked');
+                } else {
+                    groupUi.classList.remove('checked');
+                }
+            }
+            
             showModal('edit-task-modal');
         }
 
@@ -1191,6 +1214,11 @@
                 select.value = task.type || 'normal';
             }
             
+            const groupContainer = document.getElementById('edit-is-group-container');
+            if (groupContainer) {
+                groupContainer.style.display = 'none'; // Hide it for subtasks
+            }
+            
             showModal('edit-task-modal');
         }
 
@@ -1207,6 +1235,8 @@
             const desc = document.getElementById('edit-task-desc-input').value.trim();
             const qty = document.getElementById('edit-task-qty-input').value;
             const type = document.getElementById('edit-task-tab-select').value;
+            const groupInput = document.getElementById('edit-task-is-group-input');
+            const isGroup = groupInput ? groupInput.value === "true" : false;
 
             if (text) {
                 if (isSubtask && groupIndex !== "") {
@@ -1222,6 +1252,18 @@
                     lists[currentListIndex].tasks[tIndex].desc = desc;
                     lists[currentListIndex].tasks[tIndex].qty = qty;
                     lists[currentListIndex].tasks[tIndex].type = type;
+                    
+                    if (isGroup && !lists[currentListIndex].tasks[tIndex].isGroup) {
+                        lists[currentListIndex].tasks[tIndex].isGroup = true;
+                        if (!lists[currentListIndex].tasks[tIndex].subtasks) {
+                            lists[currentListIndex].tasks[tIndex].subtasks = [];
+                        }
+                        lists[currentListIndex].tasks[tIndex].isCollapsed = false;
+                        lists[currentListIndex].tasks[tIndex].savedState = null;
+                        updateGroupTaskState(tIndex);
+                    } else if (!isGroup && lists[currentListIndex].tasks[tIndex].isGroup) {
+                        lists[currentListIndex].tasks[tIndex].isGroup = false;
+                    }
                     
                     if (currentTab !== "All" && type !== currentTab) {
                         currentTab = "All";
@@ -1402,6 +1444,20 @@
         function toggleGroupCheckbox() {
             const hiddenInput = document.getElementById('task-is-group-input');
             const uiCheckbox = document.getElementById('task-is-group-ui');
+            if (hiddenInput && uiCheckbox) {
+                if (hiddenInput.value === "true") {
+                    hiddenInput.value = "false";
+                    uiCheckbox.classList.remove('checked');
+                } else {
+                    hiddenInput.value = "true";
+                    uiCheckbox.classList.add('checked');
+                }
+            }
+        }
+
+        function toggleEditGroupCheckbox() {
+            const hiddenInput = document.getElementById('edit-task-is-group-input');
+            const uiCheckbox = document.getElementById('edit-task-is-group-ui');
             if (hiddenInput && uiCheckbox) {
                 if (hiddenInput.value === "true") {
                     hiddenInput.value = "false";
