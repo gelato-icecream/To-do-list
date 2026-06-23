@@ -595,6 +595,14 @@
             <h2>List Settings</h2>
             
             <div style="margin-bottom: 20px;">
+                <h3 style="font-size: 16px; margin-bottom: 10px; color: var(--text-primary);">List Name</h3>
+                <div class="input-group" style="display: flex; gap: 10px;">
+                    <input type="text" id="edit-list-name-input" placeholder="List Name">
+                    <button class="btn-primary" onclick="renameList()">Save</button>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
                 <h3 style="font-size: 16px; margin-bottom: 10px; color: var(--text-primary);">Manage Tabs</h3>
                 <div class="input-group" style="display: flex; gap: 10px;">
                     <input type="text" id="new-tab-input" placeholder="New tab name (e.g. To-do)">
@@ -809,12 +817,24 @@
             if (currentListIndex === null) return;
             const currentList = lists[currentListIndex];
             
+            document.getElementById('edit-list-name-input').value = currentList.name;
+            
             if (!currentList.tabs) {
                 currentList.tabs = [];
             }
             
             renderSettingsTabs();
             showModal('list-settings-modal');
+        }
+
+        function renameList() {
+            if (currentListIndex === null) return;
+            const newName = document.getElementById('edit-list-name-input').value.trim();
+            if (newName) {
+                lists[currentListIndex].name = newName;
+                document.getElementById('current-list-title').textContent = newName;
+                saveState();
+            }
         }
 
         function renderSettingsTabs() {
