@@ -226,11 +226,30 @@
             cursor: pointer;
             transition: var(--transition);
             flex-shrink: 0;
+            position: relative;
         }
 
         .checkbox.checked {
             background: var(--accent);
             border-color: var(--accent);
+        }
+
+        .checkbox.dash {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .checkbox.dash svg {
+            opacity: 0;
+        }
+
+        .checkbox.dash::after {
+            content: '';
+            width: 12px;
+            height: 3px;
+            background: #fff;
+            border-radius: 2px;
+            position: absolute;
         }
 
         .checkbox svg {
@@ -273,6 +292,62 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
+        }
+
+        /* Group Tasks & Subtasks */
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .subtasks-container {
+            margin-left: 36px;
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-left: 2px solid var(--border);
+            padding-left: 15px;
+        }
+
+        .chevron {
+            transition: transform 0.3s ease;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 5px;
+            margin-right: -5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chevron.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .add-subtask-btn {
+            background: none;
+            border: 1px dashed var(--border);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 4px;
+            width: 100%;
+        }
+        
+        .add-subtask-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(16, 185, 129, 0.05);
         }
 
         /* Modals */
@@ -553,7 +628,8 @@
     <!-- Add Task Modal -->
     <div class="modal-overlay" id="add-task-modal">
         <div class="modal">
-            <h2>Add Task</h2>
+            <h2 id="add-task-modal-title">Add Task</h2>
+            <input type="hidden" id="add-subtask-to-group-index" value="">
             <div class="input-group">
                 <input type="text" id="task-input" placeholder="What needs to be done?">
             </div>
@@ -568,6 +644,15 @@
                     <option value="normal">General</option>
                 </select>
             </div>
+            <div class="input-group" id="is-group-container" style="margin-top: 15px; display: flex; align-items: center; gap: 12px; background: rgba(128, 128, 128, 0.1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; cursor: pointer;" onclick="toggleGroupCheckbox()">
+                <div class="checkbox" id="task-is-group-ui">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <span style="user-select: none; color: var(--text-primary); font-size: 16px;">Make this a Group Task</span>
+                <input type="hidden" id="task-is-group-input" value="false">
+            </div>
             <div class="modal-actions">
                 <button class="btn-text" onclick="hideModal('add-task-modal')">Cancel</button>
                 <button class="btn-primary" onclick="addTask()">Add</button>
@@ -580,6 +665,8 @@
         <div class="modal">
             <h2>Edit Task</h2>
             <input type="hidden" id="edit-task-index">
+            <input type="hidden" id="edit-task-is-subtask">
+            <input type="hidden" id="edit-task-group-index">
             <div class="input-group">
                 <input type="text" id="edit-task-input" placeholder="What needs to be done?">
             </div>
@@ -853,39 +940,158 @@
                 filteredTasks.forEach(task => {
                     const index = currentList.tasks.indexOf(task);
                     const itemEl = document.createElement('div');
-                    itemEl.className = `item ${task.completed ? 'completed' : ''}`;
                     
-                    itemEl.innerHTML = `
-                        <div class="item-left" onclick="toggleTask(${index})">
-                            <div class="checkbox ${task.completed ? 'checked' : ''}">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
+                    if (task.isGroup) {
+                        itemEl.className = 'item group-task';
+                        itemEl.style.flexDirection = 'column';
+                        itemEl.style.alignItems = 'stretch';
+                        
+                        // Calculate state
+                        let allChecked = true;
+                        let anyChecked = false;
+                        
+                        if (task.subtasks && task.subtasks.length > 0) {
+                            task.subtasks.forEach(st => {
+                                if (st.completed) anyChecked = true;
+                                else allChecked = false;
+                            });
+                        } else {
+                            allChecked = task.completed;
+                            anyChecked = task.completed;
+                        }
+                        
+                        let checkClass = '';
+                        if (task.subtasks && task.subtasks.length > 0) {
+                            if (allChecked) checkClass = 'checked';
+                            else if (anyChecked) checkClass = 'dash';
+                        } else {
+                            if (task.completed) checkClass = 'checked';
+                        }
+                        
+                        const isCollapsed = task.isCollapsed;
+                        
+                        let html = `
+                            <div class="group-header">
+                                <div class="checkbox ${checkClass}" onclick="toggleTask(${index})">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="item-info" onclick="toggleCollapse(${index})">
+                                    <h4 style="display:flex; align-items:center;">
+                                        ${escapeHtml(task.text)}
+                                        <div class="chevron ${isCollapsed ? 'collapsed' : ''}">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M6 9l6 6 6-6"/>
+                                            </svg>
+                                        </div>
+                                    </h4>
+                                    ${task.desc ? `<p style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(task.desc)}</p>` : ''}
+                                </div>
+                                <div style="display: flex; gap: 5px;">
+                                    <button class="icon-btn" onclick="openEditTask(${index})" aria-label="Edit">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                    </button>
+                                    <button class="icon-btn" onclick="deleteTask(${index})" aria-label="Delete">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="item-info">
-                                <h4>${escapeHtml(task.text)} ${task.qty ? `<span style="font-size: 14px; color: var(--accent); margin-left: 5px;">x${escapeHtml(task.qty)}</span>` : ''}</h4>
-                                ${task.desc ? `<p style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(task.desc)}</p>` : ''}
-                                ${task.type && task.type.toLowerCase() !== 'normal' && currentTab === "All" ? `<span class="task-type">${escapeHtml(task.type)}</span>` : ''}
+                        `;
+                        
+                        if (!isCollapsed) {
+                            html += `<div class="subtasks-container">`;
+                            if (task.subtasks) {
+                                task.subtasks.forEach((st, sIndex) => {
+                                    html += `
+                                        <div class="item ${st.completed ? 'completed' : ''}" style="padding: 10px; border-radius: 8px;">
+                                            <div class="item-left" onclick="toggleSubtask(${index}, ${sIndex})">
+                                                <div class="checkbox ${st.completed ? 'checked' : ''}" style="width: 20px; height: 20px; border-radius: 4px;">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                                    </svg>
+                                                </div>
+                                                <div class="item-info">
+                                                    <h4>${escapeHtml(st.text)} ${st.qty ? `<span style="font-size: 13px; color: var(--accent); margin-left: 5px;">x${escapeHtml(st.qty)}</span>` : ''}</h4>
+                                                    ${st.desc ? `<p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(st.desc)}</p>` : ''}
+                                                </div>
+                                            </div>
+                                            <div style="display: flex; gap: 5px;">
+                                                <button class="icon-btn" onclick="openEditSubtask(${index}, ${sIndex})" style="padding: 4px;">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                    </svg>
+                                                </button>
+                                                <button class="icon-btn" onclick="deleteSubtask(${index}, ${sIndex})" style="padding: 4px;">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                            }
+                            
+                            html += `
+                                <button class="add-subtask-btn" onclick="openAddSubtask(${index})">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M5 12h14"/>
+                                    </svg>
+                                    Add Subtask
+                                </button>
+                            </div>`;
+                        }
+                        
+                        itemEl.innerHTML = html;
+                    } else {
+                        itemEl.className = `item ${task.completed ? 'completed' : ''}`;
+                        itemEl.innerHTML = `
+                            <div class="item-left" onclick="toggleTask(${index})">
+                                <div class="checkbox ${task.completed ? 'checked' : ''}">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="item-info">
+                                    <h4>${escapeHtml(task.text)} ${task.qty ? `<span style="font-size: 14px; color: var(--accent); margin-left: 5px;">x${escapeHtml(task.qty)}</span>` : ''}</h4>
+                                    ${task.desc ? `<p style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(task.desc)}</p>` : ''}
+                                    ${task.type && task.type.toLowerCase() !== 'normal' && currentTab === "All" ? `<span class="task-type">${escapeHtml(task.type)}</span>` : ''}
+                                </div>
                             </div>
-                        </div>
-                        <div style="display: flex; gap: 5px;">
-                            <button class="icon-btn" onclick="openEditTask(${index})" aria-label="Edit">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                            </button>
-                            <button class="icon-btn" onclick="deleteTask(${index})" aria-label="Delete">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                </svg>
-                            </button>
-                        </div>
-                    `;
+                            <div style="display: flex; gap: 5px;">
+                                <button class="icon-btn" onclick="openEditTask(${index})" aria-label="Edit">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                                <button class="icon-btn" onclick="deleteTask(${index})" aria-label="Delete">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        `;
+                    }
                     
                     tasksList.appendChild(itemEl);
                 });
             }
+        }
+
+        function openAddSubtask(groupIndex) {
+            showModal('add-task-modal');
+            document.getElementById('add-subtask-to-group-index').value = groupIndex;
+            const groupContainer = document.getElementById('is-group-container');
+            if (groupContainer) groupContainer.style.display = 'none';
+            document.getElementById('add-task-modal-title').textContent = 'Add Subtask';
         }
 
         function addTask() {
@@ -901,10 +1107,35 @@
             const tabSelect = document.getElementById('task-tab-select');
             let type = tabSelect ? tabSelect.value : "normal";
 
+            const groupInput = document.getElementById('task-is-group-input');
+            const isGroup = groupInput ? groupInput.value === "true" : false;
+
+            const addSubtaskToGroupIndex = document.getElementById('add-subtask-to-group-index').value;
+
             if (text) {
-                lists[currentListIndex].tasks.push({ text: text, desc: desc, qty: qty, completed: false, type: type });
-                if (currentTab !== "All" && type !== currentTab) {
-                    currentTab = "All"; // Switch to All to show the new item if type doesn't match tab
+                if (addSubtaskToGroupIndex !== "") {
+                    // Adding a subtask
+                    const groupIndex = parseInt(addSubtaskToGroupIndex);
+                    if (!lists[currentListIndex].tasks[groupIndex].subtasks) {
+                        lists[currentListIndex].tasks[groupIndex].subtasks = [];
+                    }
+                    lists[currentListIndex].tasks[groupIndex].subtasks.push({
+                        text: text, desc: desc, qty: qty, completed: false, type: type
+                    });
+                    updateGroupTaskState(groupIndex);
+                } else {
+                    // Adding a normal/group task
+                    const newTask = { text: text, desc: desc, qty: qty, completed: false, type: type };
+                    if (isGroup) {
+                        newTask.isGroup = true;
+                        newTask.subtasks = [];
+                        newTask.isCollapsed = false;
+                        newTask.savedState = null;
+                    }
+                    lists[currentListIndex].tasks.push(newTask);
+                    if (currentTab !== "All" && type !== currentTab) {
+                        currentTab = "All"; // Switch to All to show the new item if type doesn't match tab
+                    }
                 }
                 saveState();
                 hideModal('add-task-modal');
@@ -916,6 +1147,34 @@
             const task = lists[currentListIndex].tasks[index];
             
             document.getElementById('edit-task-index').value = index;
+            document.getElementById('edit-task-is-subtask').value = "false";
+            document.getElementById('edit-task-group-index').value = "";
+            document.getElementById('edit-task-input').value = task.text;
+            document.getElementById('edit-task-desc-input').value = task.desc || '';
+            document.getElementById('edit-task-qty-input').value = task.qty || '';
+            
+            const select = document.getElementById('edit-task-tab-select');
+            if (select) {
+                select.innerHTML = '<option value="normal">General</option>';
+                const currentList = lists[currentListIndex];
+                if (currentList.tabs) {
+                    currentList.tabs.forEach(tab => {
+                        select.innerHTML += `<option value="${escapeHtml(tab)}">${escapeHtml(tab)}</option>`;
+                    });
+                }
+                select.value = task.type || 'normal';
+            }
+            
+            showModal('edit-task-modal');
+        }
+
+        function openEditSubtask(groupIndex, subtaskIndex) {
+            if (currentListIndex === null) return;
+            const task = lists[currentListIndex].tasks[groupIndex].subtasks[subtaskIndex];
+            
+            document.getElementById('edit-task-index').value = subtaskIndex;
+            document.getElementById('edit-task-is-subtask').value = "true";
+            document.getElementById('edit-task-group-index').value = groupIndex;
             document.getElementById('edit-task-input').value = task.text;
             document.getElementById('edit-task-desc-input').value = task.desc || '';
             document.getElementById('edit-task-qty-input').value = task.qty || '';
@@ -941,19 +1200,32 @@
             const index = document.getElementById('edit-task-index').value;
             if (index === '') return;
             
+            const isSubtask = document.getElementById('edit-task-is-subtask').value === "true";
+            const groupIndex = document.getElementById('edit-task-group-index').value;
+
             let text = document.getElementById('edit-task-input').value.trim();
             const desc = document.getElementById('edit-task-desc-input').value.trim();
             const qty = document.getElementById('edit-task-qty-input').value;
             const type = document.getElementById('edit-task-tab-select').value;
 
             if (text) {
-                lists[currentListIndex].tasks[index].text = text;
-                lists[currentListIndex].tasks[index].desc = desc;
-                lists[currentListIndex].tasks[index].qty = qty;
-                lists[currentListIndex].tasks[index].type = type;
-                
-                if (currentTab !== "All" && type !== currentTab) {
-                    currentTab = "All";
+                if (isSubtask && groupIndex !== "") {
+                    const gIndex = parseInt(groupIndex);
+                    const sIndex = parseInt(index);
+                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].text = text;
+                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].desc = desc;
+                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].qty = qty;
+                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].type = type;
+                } else {
+                    const tIndex = parseInt(index);
+                    lists[currentListIndex].tasks[tIndex].text = text;
+                    lists[currentListIndex].tasks[tIndex].desc = desc;
+                    lists[currentListIndex].tasks[tIndex].qty = qty;
+                    lists[currentListIndex].tasks[tIndex].type = type;
+                    
+                    if (currentTab !== "All" && type !== currentTab) {
+                        currentTab = "All";
+                    }
                 }
                 
                 saveState();
@@ -964,8 +1236,87 @@
         function toggleTask(index) {
             if (currentListIndex === null) return;
             const task = lists[currentListIndex].tasks[index];
-            task.completed = !task.completed;
+            
+            if (task.isGroup) {
+                if (!task.subtasks || task.subtasks.length === 0) {
+                    task.completed = !task.completed;
+                } else {
+                    let allChecked = true;
+                    let anyChecked = false;
+                    task.subtasks.forEach(st => {
+                        if (st.completed) anyChecked = true;
+                        else allChecked = false;
+                    });
+                    
+                    if (anyChecked && !allChecked) {
+                        // DASH -> TICK
+                        task.savedState = task.subtasks.map(st => st.completed);
+                        task.subtasks.forEach(st => st.completed = true);
+                        task.completed = true;
+                    } else if (allChecked) {
+                        // TICK -> EMPTY
+                        task.subtasks.forEach(st => st.completed = false);
+                        task.completed = false;
+                    } else {
+                        // EMPTY -> DASH (if savedState exists) or TICK
+                        if (task.savedState && task.savedState.some(v => v) && task.savedState.some(v => !v)) {
+                            // Restore Dash
+                            task.subtasks.forEach((st, i) => {
+                                if (i < task.savedState.length) {
+                                    st.completed = task.savedState[i];
+                                }
+                            });
+                            task.completed = false;
+                        } else {
+                            // Go to Tick
+                            task.subtasks.forEach(st => st.completed = true);
+                            task.completed = true;
+                        }
+                    }
+                }
+            } else {
+                task.completed = !task.completed;
+            }
             saveState();
+        }
+
+        function toggleSubtask(groupIndex, subtaskIndex) {
+            if (currentListIndex === null) return;
+            const task = lists[currentListIndex].tasks[groupIndex];
+            task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
+            task.savedState = null; // Clear saved state on manual change
+            updateGroupTaskState(groupIndex);
+            saveState();
+        }
+        
+        function updateGroupTaskState(groupIndex) {
+            const task = lists[currentListIndex].tasks[groupIndex];
+            if (!task.subtasks || task.subtasks.length === 0) {
+                task.completed = false;
+                return;
+            }
+            let allChecked = true;
+            task.subtasks.forEach(st => {
+                if (!st.completed) allChecked = false;
+            });
+            task.completed = allChecked;
+        }
+
+        function deleteSubtask(groupIndex, subtaskIndex) {
+            if (currentListIndex === null) return;
+            lists[currentListIndex].tasks[groupIndex].subtasks.splice(subtaskIndex, 1);
+            lists[currentListIndex].tasks[groupIndex].savedState = null;
+            updateGroupTaskState(groupIndex);
+            saveState();
+        }
+
+        function toggleCollapse(index) {
+            if (currentListIndex === null) return;
+            const task = lists[currentListIndex].tasks[index];
+            if (task.isGroup) {
+                task.isCollapsed = !task.isCollapsed;
+                renderTasks();
+            }
         }
 
         function deleteTask(index) {
@@ -990,10 +1341,28 @@
             const inputs = modal.querySelectorAll('input');
             
             if (modalId !== 'edit-task-modal') {
-                inputs.forEach(input => input.value = '');
+                inputs.forEach(input => {
+                    if (input.type === 'checkbox') input.checked = false;
+                    else input.value = '';
+                });
             }
             
             if (modalId === 'add-task-modal') {
+                const addSubtaskIdx = document.getElementById('add-subtask-to-group-index').value;
+                const groupContainer = document.getElementById('is-group-container');
+                if (groupContainer) {
+                    if (addSubtaskIdx !== "") {
+                        groupContainer.style.display = 'none';
+                        document.getElementById('add-task-modal-title').textContent = 'Add Subtask';
+                    } else {
+                        groupContainer.style.display = 'flex';
+                        document.getElementById('task-is-group-input').value = "false";
+                        const uiCheck = document.getElementById('task-is-group-ui');
+                        if (uiCheck) uiCheck.classList.remove('checked');
+                        document.getElementById('add-task-modal-title').textContent = 'Add Task';
+                    }
+                }
+
                 const select = document.getElementById('task-tab-select');
                 if (select && currentListIndex !== null) {
                     select.innerHTML = '<option value="normal">General</option>';
@@ -1011,7 +1380,7 @@
                 }
             }
             
-            const firstInput = Array.from(inputs).find(i => i.type !== 'hidden');
+            const firstInput = Array.from(inputs).find(i => i.type !== 'hidden' && i.type !== 'checkbox');
             
             modal.style.display = 'flex';
             // Slight delay to allow display:flex to apply before adding active class for transition
@@ -1030,6 +1399,20 @@
         }
 
         // Utility
+        function toggleGroupCheckbox() {
+            const hiddenInput = document.getElementById('task-is-group-input');
+            const uiCheckbox = document.getElementById('task-is-group-ui');
+            if (hiddenInput && uiCheckbox) {
+                if (hiddenInput.value === "true") {
+                    hiddenInput.value = "false";
+                    uiCheckbox.classList.remove('checked');
+                } else {
+                    hiddenInput.value = "true";
+                    uiCheckbox.classList.add('checked');
+                }
+            }
+        }
+
         function escapeHtml(unsafe) {
             return unsafe
                  .replace(/&/g, "&amp;")
