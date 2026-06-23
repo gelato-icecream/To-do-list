@@ -296,6 +296,36 @@
             color: var(--text-secondary);
         }
 
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-left: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+            vertical-align: middle;
+        }
+        .priority-high {
+            background-color: #ef4444;
+            color: #ffffff;
+            border: none;
+        }
+        .priority-medium {
+            background-color: #eab308;
+            color: #1a1a1a; /* Dark text for better contrast on yellow */
+            border: none;
+        }
+        .priority-low {
+            background-color: #22c55e;
+            color: #ffffff;
+            border: none;
+        }
+
         .task-type {
             display: inline-block;
             font-size: 11px;
