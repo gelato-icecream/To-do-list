@@ -671,6 +671,14 @@
                     <option value="normal">General</option>
                 </select>
             </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <select id="task-priority-select">
+                    <option value="">No Priority</option>
+                    <option value="high">High Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="low">Low Priority</option>
+                </select>
+            </div>
             <div class="input-group" id="is-group-container" style="margin-top: 15px; display: flex; align-items: center; gap: 12px; background: rgba(128, 128, 128, 0.1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; cursor: pointer;" onclick="toggleGroupCheckbox()">
                 <div class="checkbox" id="task-is-group-ui">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -706,6 +714,14 @@
             <div class="input-group" style="margin-top: 15px;">
                 <select id="edit-task-tab-select">
                     <option value="normal">General</option>
+                </select>
+            </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <select id="edit-task-priority-select">
+                    <option value="">No Priority</option>
+                    <option value="high">High Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="low">Low Priority</option>
                 </select>
             </div>
             <div class="input-group" id="edit-is-group-container" style="margin-top: 15px; display: flex; align-items: center; gap: 12px; background: rgba(128, 128, 128, 0.1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; cursor: pointer;" onclick="toggleEditGroupCheckbox()">
@@ -1064,6 +1080,7 @@
                                 <div class="item-info" onclick="toggleCollapse(${index})">
                                     <h4 style="display:flex; align-items:center;">
                                         ${escapeHtml(task.text)}
+                                        ${getPriorityBadge(task.priority)}
                                         <div class="chevron ${isCollapsed ? 'collapsed' : ''}">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M6 9l6 6 6-6"/>
@@ -1101,7 +1118,11 @@
                                                     </svg>
                                                 </div>
                                                 <div class="item-info">
-                                                    <h4>${escapeHtml(st.text)} ${st.qty ? `<span style="font-size: 13px; color: var(--accent); margin-left: 5px;">x${escapeHtml(st.qty)}</span>` : ''}</h4>
+                                                    <h4>
+                                                        ${escapeHtml(st.text)} 
+                                                        ${getPriorityBadge(st.priority)}
+                                                        ${st.qty ? `<span style="font-size: 13px; color: var(--accent); margin-left: 5px;">x${escapeHtml(st.qty)}</span>` : ''}
+                                                    </h4>
                                                     ${st.desc ? `<p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(st.desc)}</p>` : ''}
                                                 </div>
                                             </div>
@@ -1144,7 +1165,11 @@
                                     </svg>
                                 </div>
                                 <div class="item-info">
-                                    <h4>${escapeHtml(task.text)} ${task.qty ? `<span style="font-size: 14px; color: var(--accent); margin-left: 5px;">x${escapeHtml(task.qty)}</span>` : ''}</h4>
+                                    <h4>
+                                        ${escapeHtml(task.text)} 
+                                        ${getPriorityBadge(task.priority)}
+                                        ${task.qty ? `<span style="font-size: 14px; color: var(--accent); margin-left: 5px;">x${escapeHtml(task.qty)}</span>` : ''}
+                                    </h4>
                                     ${task.desc ? `<p style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(task.desc)}</p>` : ''}
                                     ${task.type && task.type.toLowerCase() !== 'normal' && currentTab === "All" ? `<span class="task-type">${escapeHtml(task.type)}</span>` : ''}
                                 </div>
@@ -1190,6 +1215,8 @@
             
             const tabSelect = document.getElementById('task-tab-select');
             let type = tabSelect ? tabSelect.value : "normal";
+            const prioritySelect = document.getElementById('task-priority-select');
+            let priority = prioritySelect ? prioritySelect.value : "";
 
             const groupInput = document.getElementById('task-is-group-input');
             const isGroup = groupInput ? groupInput.value === "true" : false;
@@ -1204,12 +1231,12 @@
                         lists[currentListIndex].tasks[groupIndex].subtasks = [];
                     }
                     lists[currentListIndex].tasks[groupIndex].subtasks.push({
-                        text: text, desc: desc, qty: qty, completed: false, type: type
+                        text: text, desc: desc, qty: qty, completed: false, type: type, priority: priority
                     });
                     updateGroupTaskState(groupIndex);
                 } else {
                     // Adding a normal/group task
-                    const newTask = { text: text, desc: desc, qty: qty, completed: false, type: type };
+                    const newTask = { text: text, desc: desc, qty: qty, completed: false, type: type, priority: priority };
                     if (isGroup) {
                         newTask.isGroup = true;
                         newTask.subtasks = [];
@@ -1310,6 +1337,8 @@
             const desc = document.getElementById('edit-task-desc-input').value.trim();
             const qty = document.getElementById('edit-task-qty-input').value;
             const type = document.getElementById('edit-task-tab-select').value;
+            const prioritySelect = document.getElementById('edit-task-priority-select');
+            const priority = prioritySelect ? prioritySelect.value : '';
             const groupInput = document.getElementById('edit-task-is-group-input');
             const isGroup = groupInput ? groupInput.value === "true" : false;
 
@@ -1321,12 +1350,14 @@
                     lists[currentListIndex].tasks[gIndex].subtasks[sIndex].desc = desc;
                     lists[currentListIndex].tasks[gIndex].subtasks[sIndex].qty = qty;
                     lists[currentListIndex].tasks[gIndex].subtasks[sIndex].type = type;
+                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].priority = priority;
                 } else {
                     const tIndex = parseInt(index);
                     lists[currentListIndex].tasks[tIndex].text = text;
                     lists[currentListIndex].tasks[tIndex].desc = desc;
                     lists[currentListIndex].tasks[tIndex].qty = qty;
                     lists[currentListIndex].tasks[tIndex].type = type;
+                    lists[currentListIndex].tasks[tIndex].priority = priority;
                     
                     if (isGroup && !lists[currentListIndex].tasks[tIndex].isGroup) {
                         lists[currentListIndex].tasks[tIndex].isGroup = true;
@@ -1516,6 +1547,16 @@
         }
 
         // Utility
+        function getPriorityBadge(priority) {
+            if (!priority) return '';
+            let text = '';
+            if (priority === 'high') text = 'High';
+            if (priority === 'medium') text = 'Medium';
+            if (priority === 'low') text = 'Low';
+            if (!text) return '';
+            return `<span class="badge priority-${priority}">${text}</span>`;
+        }
+
         function toggleGroupCheckbox() {
             const hiddenInput = document.getElementById('task-is-group-input');
             const uiCheckbox = document.getElementById('task-is-group-ui');
