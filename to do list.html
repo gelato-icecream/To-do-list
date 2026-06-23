@@ -1294,6 +1294,11 @@
             document.getElementById('edit-task-desc-input').value = task.desc || '';
             document.getElementById('edit-task-qty-input').value = task.qty || '';
             
+            const prioritySelect = document.getElementById('edit-task-priority-select');
+            if (prioritySelect) {
+                prioritySelect.value = task.priority || '';
+            }
+            
             const select = document.getElementById('edit-task-tab-select');
             if (select) {
                 select.innerHTML = '<option value="normal">General</option>';
@@ -1333,6 +1338,11 @@
             document.getElementById('edit-task-input').value = task.text;
             document.getElementById('edit-task-desc-input').value = task.desc || '';
             document.getElementById('edit-task-qty-input').value = task.qty || '';
+            
+            const prioritySelect = document.getElementById('edit-task-priority-select');
+            if (prioritySelect) {
+                prioritySelect.value = task.priority || '';
+            }
             
             const select = document.getElementById('edit-task-tab-select');
             if (select) {
