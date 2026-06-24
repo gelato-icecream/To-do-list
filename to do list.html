@@ -803,12 +803,14 @@
         const taskInput = document.getElementById('task-input');
 
         // Functions
-        function saveState() {
+        function saveState(skipRender = false) {
             localStorage.setItem('todo_lists_v2', JSON.stringify(lists));
-            if (currentListIndex !== null) {
-                renderTasks();
-            } else {
-                renderDashboard();
+            if (!skipRender) {
+                if (currentListIndex !== null) {
+                    renderTasks();
+                } else {
+                    renderDashboard();
+                }
             }
         }
 
@@ -910,18 +912,19 @@
             if (currentListIndex === null) return;
             const currentList = lists[currentListIndex];
             
+            if (!currentList.tabs) {
+                currentList.tabs = [];
+            }
+            
+            showModal('list-settings-modal');
+
             document.getElementById('edit-list-name-input').value = currentList.name;
             const folderInput = document.getElementById('edit-list-folder-input');
             if (folderInput) {
                 folderInput.value = currentList.folder || '';
             }
             
-            if (!currentList.tabs) {
-                currentList.tabs = [];
-            }
-            
             renderSettingsTabs();
-            showModal('list-settings-modal');
         }
 
         function renameList() {
@@ -1073,6 +1076,7 @@
                     
                     if (task.isGroup) {
                         itemEl.className = 'item group-task';
+                        itemEl.id = `task-${index}`;
                         itemEl.style.flexDirection = 'column';
                         itemEl.style.alignItems = 'stretch';
                         
@@ -1141,7 +1145,7 @@
                             if (task.subtasks) {
                                 task.subtasks.forEach((st, sIndex) => {
                                     html += `
-                                        <div class="item ${st.completed ? 'completed' : ''}" style="padding: 10px; border-radius: 8px;">
+                                        <div class="item ${st.completed ? 'completed' : ''}" id="subtask-${index}-${sIndex}" style="padding: 10px; border-radius: 8px;">
                                             <div class="item-left" onclick="toggleSubtask(${index}, ${sIndex})">
                                                 <div class="checkbox ${st.completed ? 'checked' : ''}" style="width: 20px; height: 20px; border-radius: 4px;">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -1188,6 +1192,7 @@
                         itemEl.innerHTML = html;
                     } else {
                         itemEl.className = `item ${task.completed ? 'completed' : ''}`;
+                        itemEl.id = `task-${index}`;
                         itemEl.innerHTML = `
                             <div class="item-left" onclick="toggleTask(${index})">
                                 <div class="checkbox ${task.completed ? 'checked' : ''}">
@@ -1422,6 +1427,63 @@
             }
         }
 
+        function updateTaskDOM(index) {
+            if (currentListIndex === null) return;
+            const task = lists[currentListIndex].tasks[index];
+            const taskEl = document.getElementById(`task-${index}`);
+            if (!taskEl) return;
+            
+            if (task.isGroup) {
+                const headerCheckbox = taskEl.querySelector('.group-header .checkbox');
+                if (headerCheckbox) {
+                    headerCheckbox.className = 'checkbox';
+                    
+                    let allChecked = true;
+                    let anyChecked = false;
+                    if (task.subtasks && task.subtasks.length > 0) {
+                        task.subtasks.forEach(st => {
+                            if (st.completed) anyChecked = true;
+                            else allChecked = false;
+                        });
+                        if (allChecked) headerCheckbox.classList.add('checked');
+                        else if (anyChecked) headerCheckbox.classList.add('dash');
+                    } else {
+                        if (task.completed) headerCheckbox.classList.add('checked');
+                    }
+                }
+                
+                if (task.subtasks) {
+                    task.subtasks.forEach((st, sIndex) => {
+                        const subEl = document.getElementById(`subtask-${index}-${sIndex}`);
+                        if (subEl) {
+                            if (st.completed) subEl.classList.add('completed');
+                            else subEl.classList.remove('completed');
+                            
+                            const subCheckbox = subEl.querySelector('.checkbox');
+                            if (subCheckbox) {
+                                if (st.completed) subCheckbox.classList.add('checked');
+                                else subCheckbox.classList.remove('checked');
+                            }
+                        }
+                    });
+                }
+            } else {
+                if (task.completed) taskEl.classList.add('completed');
+                else taskEl.classList.remove('completed');
+                
+                const checkbox = taskEl.querySelector('.checkbox');
+                if (checkbox) {
+                    if (task.completed) checkbox.classList.add('checked');
+                    else checkbox.classList.remove('checked');
+                }
+            }
+            
+            // Update stats
+            const totalTasks = lists[currentListIndex].tasks.length;
+            const completedTasks = lists[currentListIndex].tasks.filter(t => t.completed).length;
+            currentListStats.textContent = `${completedTasks} of ${totalTasks} tasks completed`;
+        }
+
         function toggleTask(index) {
             if (currentListIndex === null) return;
             const task = lists[currentListIndex].tasks[index];
@@ -1466,7 +1528,9 @@
             } else {
                 task.completed = !task.completed;
             }
-            saveState();
+            
+            updateTaskDOM(index);
+            saveState(true);
         }
 
         function toggleSubtask(groupIndex, subtaskIndex) {
@@ -1475,7 +1539,9 @@
             task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
             task.savedState = null; // Clear saved state on manual change
             updateGroupTaskState(groupIndex);
-            saveState();
+            
+            updateTaskDOM(groupIndex);
+            saveState(true);
         }
         
         function updateGroupTaskState(groupIndex) {
