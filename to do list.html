@@ -228,6 +228,7 @@
             align-items: center;
             gap: 12px;
             flex: 1;
+            min-width: 0;
         }
 
         .checkbox {
@@ -282,6 +283,7 @@
         .item-info {
             flex: 1;
             cursor: pointer;
+            min-width: 0;
         }
 
         .item-info h4 {
@@ -1189,7 +1191,7 @@
                                     ${task.type && task.type.toLowerCase() !== 'normal' && currentTab === "All" ? `<span class="task-type" style="margin-top: 6px; display: inline-block;">${escapeHtml(task.type)}</span>` : ''}
                                     ${getLinkedLocationsHtml(task)}
                                 </div>
-                                <div style="display: flex; gap: 5px;">
+                                <div style="display: flex; gap: 5px; flex-shrink: 0;">
                                     ${isTaskLinked(task) ? `<button class="icon-btn" onclick="unlinkTask(${index})" aria-label="Unlink" style="color: var(--danger);" title="Unlink Task">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M18.36 6.64a9 9 0 0 1-1.27 1.27m-2.12-2.12a5 5 0 0 0-7.07 7.07l1.71 1.71"></path>
@@ -1240,7 +1242,7 @@
                                                     ${getLinkedLocationsHtml(st)}
                                                 </div>
                                             </div>
-                                            <div style="display: flex; gap: 5px;">
+                                            <div style="display: flex; gap: 5px; flex-shrink: 0;">
                                                 ${isTaskLinked(st) ? `<button class="icon-btn" onclick="unlinkTask(${index}, ${sIndex})" style="padding: 4px; color: var(--danger);" title="Unlink Subtask">
                                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                         <path d="M18.36 6.64a9 9 0 0 1-1.27 1.27m-2.12-2.12a5 5 0 0 0-7.07 7.07l1.71 1.71"></path>
@@ -1303,7 +1305,7 @@
                                     ${getLinkedLocationsHtml(task)}
                                 </div>
                             </div>
-                            <div style="display: flex; gap: 5px;">
+                            <div style="display: flex; gap: 5px; flex-shrink: 0;">
                                 ${isTaskLinked(task) ? `<button class="icon-btn" onclick="unlinkTask(${index})" aria-label="Unlink" style="color: var(--danger);" title="Unlink Task">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M18.36 6.64a9 9 0 0 1-1.27 1.27m-2.12-2.12a5 5 0 0 0-7.07 7.07l1.71 1.71"></path>
