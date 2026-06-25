@@ -1725,7 +1725,23 @@
                     });
                 }
                 
-                destList.tasks.push(newTask);
+                let insertedIntoParent = false;
+                if (type === 'subtask') {
+                    const parentTask = lists[currentListIndex].tasks[index];
+                    if (parentTask.syncId) {
+                        const destParentTask = destList.tasks.find(t => t.syncId === parentTask.syncId);
+                        if (destParentTask) {
+                            if (!destParentTask.subtasks) destParentTask.subtasks = [];
+                            delete newTask.type; // subtasks don't use tabs
+                            destParentTask.subtasks.push(newTask);
+                            insertedIntoParent = true;
+                        }
+                    }
+                }
+                
+                if (!insertedIntoParent) {
+                    destList.tasks.push(newTask);
+                }
             } else if (type === 'list') {
                 const currentList = lists[currentListIndex];
                 
