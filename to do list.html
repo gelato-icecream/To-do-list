@@ -433,6 +433,8 @@
             padding: 30px;
             width: 90%;
             max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
             transform: translateY(20px);
             transition: transform 0.3s ease;
         }
@@ -556,6 +558,7 @@
             border-radius: 2px;
             margin-top: 12px;
             overflow: hidden;
+            display: flex;
         }
         
         .progress-bar {
@@ -598,15 +601,16 @@
         <!-- Detail Screen: Shows tasks for a specific list -->
         <div id="list-screen" class="screen">
             <header class="header-with-back">
-                <div class="header-left">
-                    <button class="icon-btn" onclick="showScreen('dashboard-screen')" style="color: var(--text-primary);">
+                <div class="header-left" style="flex: 1; margin-right: 10px;">
+                    <button class="icon-btn" onclick="showScreen('dashboard-screen')" style="color: var(--text-primary); margin-right: 10px; margin-top: -15px;">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M19 12H5M12 19l-7-7 7-7"/>
                         </svg>
                     </button>
-                    <div>
+                    <div style="flex: 1;">
                         <h1 id="current-list-title">List Name</h1>
                         <p id="current-list-stats">0 of 0 tasks completed</p>
+                        <div class="progress-bar-container" id="current-list-progress-container" style="margin-top: 6px;"></div>
                     </div>
                 </div>
                 <div style="display: flex; gap: 5px;">
@@ -732,13 +736,27 @@
                 </select>
             </div>
             <div class="input-group" style="margin-top: 15px;">
-                <select id="task-tick-style-select">
-                    <option value="green-tick">Green Tick (Default)</option>
-                    <option value="red-cross">Red Cross</option>
-                    <option value="blue-circle">Blue Circle</option>
-                    <option value="yellow-star">Yellow Star</option>
-                    <option value="purple-dash">Purple Dash</option>
+                <label style="display:block; font-size:13px; color:var(--text-secondary); margin-bottom:5px;">Tick Behavior</label>
+                <select id="task-tick-behavior" onchange="toggleTickCycleUI('add')">
+                    <option value="toggle">Standard Toggle</option>
+                    <option value="cycle">Custom Cycle</option>
                 </select>
+                
+                <div id="task-single-tick-ui" style="margin-top: 10px;">
+                    <select id="task-tick-style-select">
+                        <option value="green-tick">Green Tick (Default)</option>
+                        <option value="red-cross">Red Cross</option>
+                        <option value="blue-circle">Blue Circle</option>
+                        <option value="yellow-star">Yellow Star</option>
+                        <option value="purple-dash">Purple Dash</option>
+                    </select>
+                </div>
+
+                <div id="task-tick-cycle-ui" style="display:none; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <div id="task-cycle-steps" style="display: flex; flex-direction: column; gap: 8px;">
+                    </div>
+                    <button class="btn-text" style="width:100%; margin-top:8px; font-size:13px; padding: 8px; border: 1px dashed var(--border);" onclick="addCycleStep('add')">+ Add Step</button>
+                </div>
             </div>
             <div class="input-group" id="is-group-container" style="margin-top: 15px; display: flex; align-items: center; gap: 12px; background: rgba(128, 128, 128, 0.1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; cursor: pointer;" onclick="toggleGroupCheckbox()">
                 <div class="checkbox" id="task-is-group-ui">
@@ -786,13 +804,27 @@
                 </select>
             </div>
             <div class="input-group" style="margin-top: 15px;">
-                <select id="edit-task-tick-style-select">
-                    <option value="green-tick">Green Tick (Default)</option>
-                    <option value="red-cross">Red Cross</option>
-                    <option value="blue-circle">Blue Circle</option>
-                    <option value="yellow-star">Yellow Star</option>
-                    <option value="purple-dash">Purple Dash</option>
+                <label style="display:block; font-size:13px; color:var(--text-secondary); margin-bottom:5px;">Tick Behavior</label>
+                <select id="edit-task-tick-behavior" onchange="toggleTickCycleUI('edit')">
+                    <option value="toggle">Standard Toggle</option>
+                    <option value="cycle">Custom Cycle</option>
                 </select>
+                
+                <div id="edit-task-single-tick-ui" style="margin-top: 10px;">
+                    <select id="edit-task-tick-style-select">
+                        <option value="green-tick">Green Tick (Default)</option>
+                        <option value="red-cross">Red Cross</option>
+                        <option value="blue-circle">Blue Circle</option>
+                        <option value="yellow-star">Yellow Star</option>
+                        <option value="purple-dash">Purple Dash</option>
+                    </select>
+                </div>
+
+                <div id="edit-task-tick-cycle-ui" style="display:none; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <div id="edit-task-cycle-steps" style="display: flex; flex-direction: column; gap: 8px;">
+                    </div>
+                    <button class="btn-text" style="width:100%; margin-top:8px; font-size:13px; padding: 8px; border: 1px dashed var(--border);" onclick="addCycleStep('edit')">+ Add Step</button>
+                </div>
             </div>
             <div class="input-group" id="edit-is-group-container" style="margin-top: 15px; display: flex; align-items: center; gap: 12px; background: rgba(128, 128, 128, 0.1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; cursor: pointer;" onclick="toggleEditGroupCheckbox()">
                 <div class="checkbox" id="edit-task-is-group-ui">
@@ -867,7 +899,9 @@
         }
         
         function getTickSvg(style) {
-            if (style === 'red-cross') {
+            if (style === 'empty') {
+                return '';
+            } else if (style === 'red-cross') {
                 return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
             } else if (style === 'blue-circle') {
                 return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="8"></circle></svg>`;
@@ -878,6 +912,44 @@
             } else {
                 return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
             }
+        }
+
+        function isTaskCompleted(task) {
+            if (task.tickCycle && task.tickCycle.length > 0) {
+                return task.tickCycle[task.cycleIndex || 0] !== 'empty';
+            }
+            return task.completed;
+        }
+
+        function isTaskAtMax(task) {
+            if (task.tickCycle && task.tickCycle.length > 0) {
+                return (task.cycleIndex || 0) === task.tickCycle.length - 1 && task.tickCycle[task.tickCycle.length - 1] !== 'empty';
+            }
+            return task.completed;
+        }
+
+        function advanceTaskCycle(task) {
+            if (task.tickCycle && task.tickCycle.length > 0) {
+                task.cycleIndex = ((task.cycleIndex || 0) + 1) % task.tickCycle.length;
+            } else {
+                task.completed = !task.completed;
+            }
+        }
+
+        function getTaskTickClass(task) {
+            if (task.tickCycle && task.tickCycle.length > 0) {
+                const style = task.tickCycle[task.cycleIndex || 0];
+                return style === 'empty' ? '' : `checked ${style}`;
+            }
+            return task.completed ? `checked ${task.tickStyle || 'green-tick'}` : '';
+        }
+
+        function getTaskTickSvg(task) {
+            if (task.tickCycle && task.tickCycle.length > 0) {
+                const style = task.tickCycle[task.cycleIndex || 0];
+                return style === 'empty' ? '' : getTickSvg(style);
+            }
+            return task.completed ? getTickSvg(task.tickStyle || 'green-tick') : getTickSvg(task.tickStyle || 'green-tick');
         }
         
         // Ensure all lists, tasks, and subtasks have IDs for syncing
@@ -894,6 +966,51 @@
                 });
             }
         });
+
+        function getProgressBarHtml(tasks) {
+            if (!tasks || tasks.length === 0) return '';
+            
+            const totalTasks = tasks.length;
+            const counts = {};
+            
+            tasks.forEach(t => {
+                if (isTaskCompleted(t)) {
+                    let style = 'green-tick';
+                    if (t.tickCycle && t.tickCycle.length > 0) {
+                        style = t.tickCycle[t.cycleIndex || 0];
+                    } else if (t.tickStyle) {
+                        style = t.tickStyle;
+                    }
+                    if (!counts[style]) counts[style] = 0;
+                    counts[style]++;
+                }
+            });
+            
+            const colors = {
+                'green-tick': 'var(--accent)',
+                'red-cross': 'var(--danger)',
+                'blue-circle': '#3b82f6',
+                'yellow-star': '#eab308',
+                'purple-dash': '#a855f7'
+            };
+            
+            let html = '';
+            for (const style in counts) {
+                const percentage = (counts[style] / totalTasks) * 100;
+                const color = colors[style] || 'var(--accent)';
+                html += `<div class="progress-bar" style="width: ${percentage}%; background: ${color};"></div>`;
+            }
+            return html;
+        }
+
+        function updateListStats() {
+            if (currentListIndex === null) return;
+            const currentList = lists[currentListIndex];
+            const totalTasks = currentList.tasks.length;
+            const completedTasks = currentList.tasks.filter(t => isTaskCompleted(t)).length;
+            document.getElementById('current-list-stats').textContent = `${completedTasks} of ${totalTasks} tasks completed`;
+            document.getElementById('current-list-progress-container').innerHTML = getProgressBarHtml(currentList.tasks);
+        }
 
         
         let currentListIndex = null;
@@ -957,8 +1074,7 @@
                     
                     folders[folderName].forEach(({ list, index }) => {
                         const totalTasks = list.tasks.length;
-                        const completedTasks = list.tasks.filter(t => t.completed).length;
-                        const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+                        const completedTasks = list.tasks.filter(t => isTaskCompleted(t)).length;
                         
                         const cardEl = document.createElement('div');
                         cardEl.className = 'card';
@@ -971,7 +1087,7 @@
                                     <p>${completedTasks} of ${totalTasks} completed</p>
                                 </div>
                                 <div class="progress-bar-container">
-                                    <div class="progress-bar" style="width: ${progressPercentage}%"></div>
+                                    ${getProgressBarHtml(list.tasks)}
                                 </div>
                             </div>
                         `;
@@ -1114,9 +1230,7 @@
             const currentList = lists[currentListIndex];
             currentListTitle.textContent = currentList.name;
             
-            const totalTasks = currentList.tasks.length;
-            const completedTasks = currentList.tasks.filter(t => t.completed).length;
-            currentListStats.textContent = `${completedTasks} of ${totalTasks} tasks completed`;
+            updateListStats();
             
             // Get unique types for tabs
             const types = ["All"];
@@ -1189,33 +1303,33 @@
                         itemEl.style.alignItems = 'stretch';
                         
                         // Calculate state
-                        let allChecked = true;
+                        let allMax = true;
                         let anyChecked = false;
                         
                         if (task.subtasks && task.subtasks.length > 0) {
                             task.subtasks.forEach(st => {
-                                if (st.completed) anyChecked = true;
-                                else allChecked = false;
+                                if (isTaskCompleted(st)) anyChecked = true;
+                                if (!isTaskAtMax(st)) allMax = false;
                             });
                         } else {
-                            allChecked = task.completed;
-                            anyChecked = task.completed;
+                            allMax = isTaskCompleted(task);
+                            anyChecked = isTaskCompleted(task);
                         }
                         
                         let checkClass = '';
                         if (task.subtasks && task.subtasks.length > 0) {
-                            if (allChecked) checkClass = 'checked';
-                            else if (anyChecked) checkClass = 'dash';
+                            if (allMax) checkClass = 'checked ' + (task.tickStyle || '');
+                            else if (anyChecked) checkClass = 'dash ' + (task.tickStyle || '');
                         } else {
-                            if (task.completed) checkClass = 'checked';
+                            if (isTaskCompleted(task)) checkClass = getTaskTickClass(task);
                         }
                         
                         const isCollapsed = task.isCollapsed;
                         
                         let html = `
                             <div class="group-header">
-                                <div class="checkbox ${checkClass} ${task.tickStyle || ''}" onclick="toggleTask(${index})">
-                                    ${getTickSvg(task.tickStyle)}
+                                <div class="checkbox ${checkClass}" onclick="toggleTask(${index})">
+                                    ${(task.subtasks && task.subtasks.length > 0) ? getTickSvg(task.tickStyle) : getTaskTickSvg(task)}
                                 </div>
                                 <div class="item-info" onclick="toggleCollapse(${index})">
                                     <h4 style="display:flex; align-items:center;">
@@ -1265,10 +1379,10 @@
                             if (task.subtasks) {
                                 task.subtasks.forEach((st, sIndex) => {
                                     html += `
-                                        <div class="item ${st.completed ? 'completed' : ''}" id="subtask-${index}-${sIndex}" style="padding: 10px; border-radius: 8px;">
+                                        <div class="item ${isTaskCompleted(st) ? 'completed' : ''}" id="subtask-${index}-${sIndex}" style="padding: 10px; border-radius: 8px;">
                                             <div class="item-left" onclick="toggleSubtask(${index}, ${sIndex})">
-                                                <div class="checkbox ${st.completed ? 'checked' : ''} ${st.tickStyle || ''}" style="width: 20px; height: 20px; border-radius: 4px;">
-                                                    ${getTickSvg(st.tickStyle)}
+                                                <div class="checkbox ${getTaskTickClass(st)}" style="width: 20px; height: 20px; border-radius: 4px;">
+                                                    ${getTaskTickSvg(st)}
                                                 </div>
                                                 <div class="item-info">
                                                     <h4>
@@ -1323,12 +1437,12 @@
                         
                         itemEl.innerHTML = html;
                     } else {
-                        itemEl.className = `item ${task.completed ? 'completed' : ''}`;
+                        itemEl.className = `item ${isTaskCompleted(task) ? 'completed' : ''}`;
                         itemEl.id = `task-${index}`;
                         itemEl.innerHTML = `
                             <div class="item-left" onclick="toggleTask(${index})">
-                                <div class="checkbox ${task.completed ? 'checked' : ''} ${task.tickStyle || ''}">
-                                    ${getTickSvg(task.tickStyle)}
+                                <div class="checkbox ${getTaskTickClass(task)}">
+                                    ${getTaskTickSvg(task)}
                                 </div>
                                 <div class="item-info">
                                     <h4>
@@ -1381,6 +1495,72 @@
             const groupContainer = document.getElementById('is-group-container');
             if (groupContainer) groupContainer.style.display = 'none';
             document.getElementById('add-task-modal-title').textContent = 'Add Subtask';
+            
+            // Reset tick behavior
+            if (document.getElementById('task-tick-behavior')) {
+                document.getElementById('task-tick-behavior').value = 'toggle';
+                toggleTickCycleUI('add');
+            }
+        }
+
+        function toggleTickCycleUI(mode) {
+            const prefix = mode === 'edit' ? 'edit-task-' : 'task-';
+            const behavior = document.getElementById(`${prefix}tick-behavior`).value;
+            if (behavior === 'cycle') {
+                document.getElementById(`${prefix}single-tick-ui`).style.display = 'none';
+                document.getElementById(`${prefix}tick-cycle-ui`).style.display = 'block';
+                const container = document.getElementById(`${prefix}cycle-steps`);
+                if (container.children.length === 0) {
+                    addCycleStep(mode, 'empty');
+                    addCycleStep(mode, 'green-tick');
+                }
+            } else {
+                document.getElementById(`${prefix}single-tick-ui`).style.display = 'block';
+                document.getElementById(`${prefix}tick-cycle-ui`).style.display = 'none';
+            }
+        }
+
+        function addCycleStep(mode, val = 'empty') {
+            const prefix = mode === 'edit' ? 'edit-task-' : 'task-';
+            const container = document.getElementById(`${prefix}cycle-steps`);
+            const stepDiv = document.createElement('div');
+            stepDiv.style.display = 'flex';
+            stepDiv.style.gap = '5px';
+            stepDiv.style.alignItems = 'center';
+            stepDiv.innerHTML = `
+                <select class="cycle-step-select" style="flex: 1; padding: 8px; font-size: 14px; border-radius: 8px; background: rgba(128,128,128,0.1); color: var(--text-primary); border: 1px solid var(--border);">
+                    <option value="empty">Unchecked</option>
+                    <option value="green-tick">Green Tick</option>
+                    <option value="red-cross">Red Cross</option>
+                    <option value="blue-circle">Blue Circle</option>
+                    <option value="yellow-star">Yellow Star</option>
+                    <option value="purple-dash">Purple Dash</option>
+                </select>
+                <button class="icon-btn" onclick="this.parentElement.remove()" style="color: var(--danger); padding: 5px;">
+                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                </button>
+            `;
+            stepDiv.querySelector('select').value = val;
+            container.appendChild(stepDiv);
+        }
+
+        function getCycleSteps(mode) {
+            const prefix = mode === 'edit' ? 'edit-task-' : 'task-';
+            const behaviorEl = document.getElementById(`${prefix}tick-behavior`);
+            if (!behaviorEl || behaviorEl.value === 'toggle') return null;
+            
+            const selects = document.getElementById(`${prefix}cycle-steps`).querySelectorAll('select');
+            const cycle = Array.from(selects).map(s => s.value);
+            return cycle.length > 0 ? cycle : null;
+        }
+
+        function populateCycleSteps(mode, cycle) {
+            const prefix = mode === 'edit' ? 'edit-task-' : 'task-';
+            const container = document.getElementById(`${prefix}cycle-steps`);
+            container.innerHTML = '';
+            if (cycle && cycle.length > 0) {
+                cycle.forEach(val => addCycleStep(mode, val));
+            }
         }
 
         function addTask() {
@@ -1398,8 +1578,19 @@
             const prioritySelect = document.getElementById('task-priority-select');
             let priority = prioritySelect ? prioritySelect.value : "";
             
-            const tickStyleSelect = document.getElementById('task-tick-style-select');
-            let tickStyle = tickStyleSelect ? tickStyleSelect.value : "green-tick";
+            const tickBehaviorEl = document.getElementById('task-tick-behavior');
+            const tickBehavior = tickBehaviorEl ? tickBehaviorEl.value : 'toggle';
+            
+            let tickStyle = "green-tick";
+            let tickCycle = null;
+            let cycleIndex = 0;
+            
+            if (tickBehavior === 'cycle') {
+                tickCycle = getCycleSteps('add');
+            } else {
+                const tickStyleSelect = document.getElementById('task-tick-style-select');
+                tickStyle = tickStyleSelect ? tickStyleSelect.value : "green-tick";
+            }
 
             const groupInput = document.getElementById('task-is-group-input');
             const isGroup = groupInput ? groupInput.value === "true" : false;
@@ -1414,12 +1605,12 @@
                         lists[currentListIndex].tasks[groupIndex].subtasks = [];
                     }
                     lists[currentListIndex].tasks[groupIndex].subtasks.push({
-                        text: text, desc: desc, qty: qty, completed: false, type: type, priority: priority, tickStyle: tickStyle
+                        text: text, desc: desc, qty: qty, completed: false, type: type, priority: priority, tickStyle: tickStyle, tickCycle: tickCycle, cycleIndex: cycleIndex
                     });
                     updateGroupTaskState(groupIndex);
                 } else {
                     // Adding a normal/group task
-                    const newTask = { text: text, desc: desc, qty: qty, completed: false, type: type, priority: priority, tickStyle: tickStyle };
+                    const newTask = { text: text, desc: desc, qty: qty, completed: false, type: type, priority: priority, tickStyle: tickStyle, tickCycle: tickCycle, cycleIndex: cycleIndex };
                     if (isGroup) {
                         newTask.isGroup = true;
                         newTask.subtasks = [];
@@ -1481,9 +1672,20 @@
                 prioritySelect.value = task.priority || '';
             }
             
-            const tickStyleSelect = document.getElementById('edit-task-tick-style-select');
-            if (tickStyleSelect) {
-                tickStyleSelect.value = task.tickStyle || 'green-tick';
+            const tickBehaviorEl = document.getElementById('edit-task-tick-behavior');
+            if (tickBehaviorEl) {
+                if (task.tickCycle) {
+                    tickBehaviorEl.value = 'cycle';
+                    toggleTickCycleUI('edit');
+                    populateCycleSteps('edit', task.tickCycle);
+                } else {
+                    tickBehaviorEl.value = 'toggle';
+                    toggleTickCycleUI('edit');
+                    const tickStyleSelect = document.getElementById('edit-task-tick-style-select');
+                    if (tickStyleSelect) {
+                        tickStyleSelect.value = task.tickStyle || 'green-tick';
+                    }
+                }
             }
             
             const select = document.getElementById('edit-task-tab-select');
@@ -1531,9 +1733,20 @@
                 prioritySelect.value = task.priority || '';
             }
             
-            const tickStyleSelect = document.getElementById('edit-task-tick-style-select');
-            if (tickStyleSelect) {
-                tickStyleSelect.value = task.tickStyle || 'green-tick';
+            const tickBehaviorEl = document.getElementById('edit-task-tick-behavior');
+            if (tickBehaviorEl) {
+                if (task.tickCycle) {
+                    tickBehaviorEl.value = 'cycle';
+                    toggleTickCycleUI('edit');
+                    populateCycleSteps('edit', task.tickCycle);
+                } else {
+                    tickBehaviorEl.value = 'toggle';
+                    toggleTickCycleUI('edit');
+                    const tickStyleSelect = document.getElementById('edit-task-tick-style-select');
+                    if (tickStyleSelect) {
+                        tickStyleSelect.value = task.tickStyle || 'green-tick';
+                    }
+                }
             }
             
             const select = document.getElementById('edit-task-tab-select');
@@ -1571,8 +1784,19 @@
             const type = document.getElementById('edit-task-tab-select').value;
             const prioritySelect = document.getElementById('edit-task-priority-select');
             const priority = prioritySelect ? prioritySelect.value : '';
-            const tickStyleSelect = document.getElementById('edit-task-tick-style-select');
-            const tickStyle = tickStyleSelect ? tickStyleSelect.value : 'green-tick';
+            const tickBehaviorEl = document.getElementById('edit-task-tick-behavior');
+            const tickBehavior = tickBehaviorEl ? tickBehaviorEl.value : 'toggle';
+            
+            let tickStyle = "green-tick";
+            let tickCycle = null;
+            
+            if (tickBehavior === 'cycle') {
+                tickCycle = getCycleSteps('edit');
+            } else {
+                const tickStyleSelect = document.getElementById('edit-task-tick-style-select');
+                tickStyle = tickStyleSelect ? tickStyleSelect.value : "green-tick";
+            }
+
             const groupInput = document.getElementById('edit-task-is-group-input');
             const isGroup = groupInput ? groupInput.value === "true" : false;
 
@@ -1580,20 +1804,31 @@
                 if (isSubtask && groupIndex !== "") {
                     const gIndex = parseInt(groupIndex);
                     const sIndex = parseInt(index);
-                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].text = text;
-                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].desc = desc;
-                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].qty = qty;
-                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].type = type;
-                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].priority = priority;
-                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].tickStyle = tickStyle;
+                    const st = lists[currentListIndex].tasks[gIndex].subtasks[sIndex];
+                    st.text = text;
+                    st.desc = desc;
+                    st.qty = qty;
+                    st.type = type;
+                    st.priority = priority;
+                    st.tickStyle = tickStyle;
+                    st.tickCycle = tickCycle;
+                    // Reset cycle index if cycle is added or changed significantly
+                    if (tickCycle && (!st.tickCycle || st.cycleIndex >= tickCycle.length)) {
+                        st.cycleIndex = 0;
+                    }
                 } else {
                     const tIndex = parseInt(index);
-                    lists[currentListIndex].tasks[tIndex].text = text;
-                    lists[currentListIndex].tasks[tIndex].desc = desc;
-                    lists[currentListIndex].tasks[tIndex].qty = qty;
-                    lists[currentListIndex].tasks[tIndex].type = type;
-                    lists[currentListIndex].tasks[tIndex].priority = priority;
-                    lists[currentListIndex].tasks[tIndex].tickStyle = tickStyle;
+                    const t = lists[currentListIndex].tasks[tIndex];
+                    t.text = text;
+                    t.desc = desc;
+                    t.qty = qty;
+                    t.type = type;
+                    t.priority = priority;
+                    t.tickStyle = tickStyle;
+                    t.tickCycle = tickCycle;
+                    if (tickCycle && (!t.tickCycle || t.cycleIndex >= tickCycle.length)) {
+                        t.cycleIndex = 0;
+                    }
                     
                     if (isGroup && !lists[currentListIndex].tasks[tIndex].isGroup) {
                         lists[currentListIndex].tasks[tIndex].isGroup = true;
@@ -1635,6 +1870,8 @@
                             task.qty = sourceTask.qty;
                             task.priority = sourceTask.priority;
                             task.tickStyle = sourceTask.tickStyle;
+                            task.tickCycle = sourceTask.tickCycle;
+                            task.cycleIndex = sourceTask.cycleIndex;
                             task.completed = sourceTask.completed;
                             task.isGroup = sourceTask.isGroup;
                             if (lIndex === currentListIndex) {
@@ -1652,6 +1889,8 @@
                                     st.qty = sourceTask.qty;
                                     st.priority = sourceTask.priority;
                                     st.tickStyle = sourceTask.tickStyle;
+                                    st.tickCycle = sourceTask.tickCycle;
+                                    st.cycleIndex = sourceTask.cycleIndex;
                                     st.completed = sourceTask.completed;
                                     if (lIndex === currentListIndex) {
                                         if (isJustStatusChange) {
@@ -1865,17 +2104,21 @@
                 if (headerCheckbox) {
                     headerCheckbox.className = 'checkbox ' + (task.tickStyle || '');
                     
-                    let allChecked = true;
+                    let allMax = true;
                     let anyChecked = false;
                     if (task.subtasks && task.subtasks.length > 0) {
                         task.subtasks.forEach(st => {
-                            if (st.completed) anyChecked = true;
-                            else allChecked = false;
+                            if (isTaskCompleted(st)) anyChecked = true;
+                            if (!isTaskAtMax(st)) allMax = false;
                         });
-                        if (allChecked) headerCheckbox.classList.add('checked');
+                        if (allMax) {
+                            headerCheckbox.classList.add('checked');
+                            // If they are all max, maybe add a specific tick style from the group task or default green tick
+                            // We already added task.tickStyle above. So if it has one, it will be colored.
+                        }
                         else if (anyChecked) headerCheckbox.classList.add('dash');
                     } else {
-                        if (task.completed) headerCheckbox.classList.add('checked');
+                        if (isTaskCompleted(task)) headerCheckbox.className = 'checkbox ' + getTaskTickClass(task);
                     }
                 }
                 
@@ -1883,32 +2126,30 @@
                     task.subtasks.forEach((st, sIndex) => {
                         const subEl = document.getElementById(`subtask-${index}-${sIndex}`);
                         if (subEl) {
-                            if (st.completed) subEl.classList.add('completed');
+                            if (isTaskCompleted(st)) subEl.classList.add('completed');
                             else subEl.classList.remove('completed');
                             
                             const subCheckbox = subEl.querySelector('.checkbox');
                             if (subCheckbox) {
-                                if (st.completed) subCheckbox.classList.add('checked');
-                                else subCheckbox.classList.remove('checked');
+                                subCheckbox.className = 'checkbox ' + getTaskTickClass(st);
+                                subCheckbox.innerHTML = getTaskTickSvg(st);
                             }
                         }
                     });
                 }
             } else {
-                if (task.completed) taskEl.classList.add('completed');
+                if (isTaskCompleted(task)) taskEl.classList.add('completed');
                 else taskEl.classList.remove('completed');
                 
                 const checkbox = taskEl.querySelector('.checkbox');
                 if (checkbox) {
-                    if (task.completed) checkbox.classList.add('checked');
-                    else checkbox.classList.remove('checked');
+                    checkbox.className = 'checkbox ' + getTaskTickClass(task);
+                    checkbox.innerHTML = getTaskTickSvg(task);
                 }
             }
             
-            // Update stats
-            const totalTasks = lists[currentListIndex].tasks.length;
-            const completedTasks = lists[currentListIndex].tasks.filter(t => t.completed).length;
-            currentListStats.textContent = `${completedTasks} of ${totalTasks} tasks completed`;
+            // Update stats handled by renderTasks or a separate call
+            updateListStats();
         }
 
         function toggleTask(index) {
@@ -1917,43 +2158,53 @@
             
             if (task.isGroup) {
                 if (!task.subtasks || task.subtasks.length === 0) {
-                    task.completed = !task.completed;
+                    advanceTaskCycle(task);
                 } else {
-                    let allChecked = true;
+                    let allMax = true;
                     let anyChecked = false;
                     task.subtasks.forEach(st => {
-                        if (st.completed) anyChecked = true;
-                        else allChecked = false;
+                        if (isTaskCompleted(st)) anyChecked = true;
+                        if (!isTaskAtMax(st)) allMax = false;
                     });
                     
-                    if (anyChecked && !allChecked) {
-                        // DASH -> TICK
-                        task.savedState = task.subtasks.map(st => st.completed);
-                        task.subtasks.forEach(st => st.completed = true);
+                    if (anyChecked && !allMax) {
+                        // DASH -> TICK (all max)
+                        task.savedState = task.subtasks.map(st => st.cycleIndex !== undefined ? st.cycleIndex : st.completed);
+                        task.subtasks.forEach(st => {
+                            if (st.tickCycle && st.tickCycle.length > 0) st.cycleIndex = st.tickCycle.length - 1;
+                            else st.completed = true;
+                        });
                         task.completed = true;
-                    } else if (allChecked) {
+                    } else if (allMax) {
                         // TICK -> EMPTY
-                        task.subtasks.forEach(st => st.completed = false);
+                        task.subtasks.forEach(st => {
+                            if (st.tickCycle && st.tickCycle.length > 0) st.cycleIndex = 0;
+                            else st.completed = false;
+                        });
                         task.completed = false;
                     } else {
                         // EMPTY -> DASH (if savedState exists) or TICK
-                        if (task.savedState && task.savedState.some(v => v) && task.savedState.some(v => !v)) {
+                        if (task.savedState && task.savedState.some(v => v !== 0 && v !== false) && task.savedState.some(v => v !== true)) { // heuristic for mixed state
                             // Restore Dash
                             task.subtasks.forEach((st, i) => {
                                 if (i < task.savedState.length) {
-                                    st.completed = task.savedState[i];
+                                    if (st.tickCycle) st.cycleIndex = task.savedState[i];
+                                    else st.completed = task.savedState[i];
                                 }
                             });
                             task.completed = false;
                         } else {
                             // Go to Tick
-                            task.subtasks.forEach(st => st.completed = true);
+                            task.subtasks.forEach(st => {
+                                if (st.tickCycle && st.tickCycle.length > 0) st.cycleIndex = st.tickCycle.length - 1;
+                                else st.completed = true;
+                            });
                             task.completed = true;
                         }
                     }
                 }
             } else {
-                task.completed = !task.completed;
+                advanceTaskCycle(task);
             }
             
             updateTaskDOM(index);
@@ -1964,7 +2215,7 @@
         function toggleSubtask(groupIndex, subtaskIndex) {
             if (currentListIndex === null) return;
             const task = lists[currentListIndex].tasks[groupIndex];
-            task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
+            advanceTaskCycle(task.subtasks[subtaskIndex]);
             task.savedState = null; // Clear saved state on manual change
             updateGroupTaskState(groupIndex);
             
