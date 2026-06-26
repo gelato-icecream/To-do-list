@@ -280,6 +280,16 @@
             opacity: 1;
         }
 
+        .checkbox.checked.red-cross { background: var(--danger); border-color: var(--danger); }
+        .checkbox.checked.blue-circle { background: #3b82f6; border-color: #3b82f6; }
+        .checkbox.checked.yellow-star { background: #eab308; border-color: #eab308; }
+        .checkbox.checked.purple-dash { background: #a855f7; border-color: #a855f7; }
+
+        .checkbox.dash.red-cross { background: var(--danger); border-color: var(--danger); }
+        .checkbox.dash.blue-circle { background: #3b82f6; border-color: #3b82f6; }
+        .checkbox.dash.yellow-star { background: #eab308; border-color: #eab308; }
+        .checkbox.dash.purple-dash { background: #a855f7; border-color: #a855f7; }
+
         .item-info {
             flex: 1;
             cursor: pointer;
@@ -721,6 +731,15 @@
                     <option value="low">Low Priority</option>
                 </select>
             </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <select id="task-tick-style-select">
+                    <option value="green-tick">Green Tick (Default)</option>
+                    <option value="red-cross">Red Cross</option>
+                    <option value="blue-circle">Blue Circle</option>
+                    <option value="yellow-star">Yellow Star</option>
+                    <option value="purple-dash">Purple Dash</option>
+                </select>
+            </div>
             <div class="input-group" id="is-group-container" style="margin-top: 15px; display: flex; align-items: center; gap: 12px; background: rgba(128, 128, 128, 0.1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; cursor: pointer;" onclick="toggleGroupCheckbox()">
                 <div class="checkbox" id="task-is-group-ui">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -764,6 +783,15 @@
                     <option value="high">High Priority</option>
                     <option value="medium">Medium Priority</option>
                     <option value="low">Low Priority</option>
+                </select>
+            </div>
+            <div class="input-group" style="margin-top: 15px;">
+                <select id="edit-task-tick-style-select">
+                    <option value="green-tick">Green Tick (Default)</option>
+                    <option value="red-cross">Red Cross</option>
+                    <option value="blue-circle">Blue Circle</option>
+                    <option value="yellow-star">Yellow Star</option>
+                    <option value="purple-dash">Purple Dash</option>
                 </select>
             </div>
             <div class="input-group" id="edit-is-group-container" style="margin-top: 15px; display: flex; align-items: center; gap: 12px; background: rgba(128, 128, 128, 0.1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; cursor: pointer;" onclick="toggleEditGroupCheckbox()">
@@ -836,6 +864,20 @@
 
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+        
+        function getTickSvg(style) {
+            if (style === 'red-cross') {
+                return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+            } else if (style === 'blue-circle') {
+                return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="8"></circle></svg>`;
+            } else if (style === 'yellow-star') {
+                return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
+            } else if (style === 'purple-dash') {
+                return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="6" y1="12" x2="18" y2="12"></line></svg>`;
+            } else {
+                return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            }
         }
         
         // Ensure all lists, tasks, and subtasks have IDs for syncing
@@ -1172,10 +1214,8 @@
                         
                         let html = `
                             <div class="group-header">
-                                <div class="checkbox ${checkClass}" onclick="toggleTask(${index})">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
+                                <div class="checkbox ${checkClass} ${task.tickStyle || ''}" onclick="toggleTask(${index})">
+                                    ${getTickSvg(task.tickStyle)}
                                 </div>
                                 <div class="item-info" onclick="toggleCollapse(${index})">
                                     <h4 style="display:flex; align-items:center;">
@@ -1227,10 +1267,8 @@
                                     html += `
                                         <div class="item ${st.completed ? 'completed' : ''}" id="subtask-${index}-${sIndex}" style="padding: 10px; border-radius: 8px;">
                                             <div class="item-left" onclick="toggleSubtask(${index}, ${sIndex})">
-                                                <div class="checkbox ${st.completed ? 'checked' : ''}" style="width: 20px; height: 20px; border-radius: 4px;">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                                    </svg>
+                                                <div class="checkbox ${st.completed ? 'checked' : ''} ${st.tickStyle || ''}" style="width: 20px; height: 20px; border-radius: 4px;">
+                                                    ${getTickSvg(st.tickStyle)}
                                                 </div>
                                                 <div class="item-info">
                                                     <h4>
@@ -1289,10 +1327,8 @@
                         itemEl.id = `task-${index}`;
                         itemEl.innerHTML = `
                             <div class="item-left" onclick="toggleTask(${index})">
-                                <div class="checkbox ${task.completed ? 'checked' : ''}">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
+                                <div class="checkbox ${task.completed ? 'checked' : ''} ${task.tickStyle || ''}">
+                                    ${getTickSvg(task.tickStyle)}
                                 </div>
                                 <div class="item-info">
                                     <h4>
@@ -1361,6 +1397,9 @@
             let type = tabSelect ? tabSelect.value : "normal";
             const prioritySelect = document.getElementById('task-priority-select');
             let priority = prioritySelect ? prioritySelect.value : "";
+            
+            const tickStyleSelect = document.getElementById('task-tick-style-select');
+            let tickStyle = tickStyleSelect ? tickStyleSelect.value : "green-tick";
 
             const groupInput = document.getElementById('task-is-group-input');
             const isGroup = groupInput ? groupInput.value === "true" : false;
@@ -1375,12 +1414,12 @@
                         lists[currentListIndex].tasks[groupIndex].subtasks = [];
                     }
                     lists[currentListIndex].tasks[groupIndex].subtasks.push({
-                        text: text, desc: desc, qty: qty, completed: false, type: type, priority: priority
+                        text: text, desc: desc, qty: qty, completed: false, type: type, priority: priority, tickStyle: tickStyle
                     });
                     updateGroupTaskState(groupIndex);
                 } else {
                     // Adding a normal/group task
-                    const newTask = { text: text, desc: desc, qty: qty, completed: false, type: type, priority: priority };
+                    const newTask = { text: text, desc: desc, qty: qty, completed: false, type: type, priority: priority, tickStyle: tickStyle };
                     if (isGroup) {
                         newTask.isGroup = true;
                         newTask.subtasks = [];
@@ -1442,6 +1481,11 @@
                 prioritySelect.value = task.priority || '';
             }
             
+            const tickStyleSelect = document.getElementById('edit-task-tick-style-select');
+            if (tickStyleSelect) {
+                tickStyleSelect.value = task.tickStyle || 'green-tick';
+            }
+            
             const select = document.getElementById('edit-task-tab-select');
             if (select) {
                 select.innerHTML = '<option value="normal">General</option>';
@@ -1487,6 +1531,11 @@
                 prioritySelect.value = task.priority || '';
             }
             
+            const tickStyleSelect = document.getElementById('edit-task-tick-style-select');
+            if (tickStyleSelect) {
+                tickStyleSelect.value = task.tickStyle || 'green-tick';
+            }
+            
             const select = document.getElementById('edit-task-tab-select');
             if (select) {
                 select.innerHTML = '<option value="normal">General</option>';
@@ -1522,6 +1571,8 @@
             const type = document.getElementById('edit-task-tab-select').value;
             const prioritySelect = document.getElementById('edit-task-priority-select');
             const priority = prioritySelect ? prioritySelect.value : '';
+            const tickStyleSelect = document.getElementById('edit-task-tick-style-select');
+            const tickStyle = tickStyleSelect ? tickStyleSelect.value : 'green-tick';
             const groupInput = document.getElementById('edit-task-is-group-input');
             const isGroup = groupInput ? groupInput.value === "true" : false;
 
@@ -1534,6 +1585,7 @@
                     lists[currentListIndex].tasks[gIndex].subtasks[sIndex].qty = qty;
                     lists[currentListIndex].tasks[gIndex].subtasks[sIndex].type = type;
                     lists[currentListIndex].tasks[gIndex].subtasks[sIndex].priority = priority;
+                    lists[currentListIndex].tasks[gIndex].subtasks[sIndex].tickStyle = tickStyle;
                 } else {
                     const tIndex = parseInt(index);
                     lists[currentListIndex].tasks[tIndex].text = text;
@@ -1541,6 +1593,7 @@
                     lists[currentListIndex].tasks[tIndex].qty = qty;
                     lists[currentListIndex].tasks[tIndex].type = type;
                     lists[currentListIndex].tasks[tIndex].priority = priority;
+                    lists[currentListIndex].tasks[tIndex].tickStyle = tickStyle;
                     
                     if (isGroup && !lists[currentListIndex].tasks[tIndex].isGroup) {
                         lists[currentListIndex].tasks[tIndex].isGroup = true;
@@ -1566,8 +1619,11 @@
         }
 
         // --- LINKING LOGIC ---
-        function syncTasks(sourceTask) {
+        function syncTasks(sourceTask, isJustStatusChange = false) {
             if (!sourceTask || !sourceTask.syncId) return;
+            
+            let currentListNeedsRender = false;
+            let tasksToUpdateDOM = [];
             
             lists.forEach((list, lIndex) => {
                 if (list.tasks) {
@@ -1578,8 +1634,13 @@
                             task.desc = sourceTask.desc;
                             task.qty = sourceTask.qty;
                             task.priority = sourceTask.priority;
+                            task.tickStyle = sourceTask.tickStyle;
                             task.completed = sourceTask.completed;
                             task.isGroup = sourceTask.isGroup;
+                            if (lIndex === currentListIndex) {
+                                if (isJustStatusChange) tasksToUpdateDOM.push(tIndex);
+                                else currentListNeedsRender = true;
+                            }
                         }
                         
                         // Update subtasks
@@ -1590,7 +1651,15 @@
                                     st.desc = sourceTask.desc;
                                     st.qty = sourceTask.qty;
                                     st.priority = sourceTask.priority;
+                                    st.tickStyle = sourceTask.tickStyle;
                                     st.completed = sourceTask.completed;
+                                    if (lIndex === currentListIndex) {
+                                        if (isJustStatusChange) {
+                                            if (!tasksToUpdateDOM.includes(tIndex)) tasksToUpdateDOM.push(tIndex);
+                                        } else {
+                                            currentListNeedsRender = true;
+                                        }
+                                    }
                                 }
                             });
                         }
@@ -1598,9 +1667,14 @@
                 }
             });
             
-            // Re-render if current list is affected (for simplicity, always re-render the current list if we are syncing)
             if (currentListIndex !== null) {
-                renderTasks();
+                if (currentListNeedsRender) {
+                    renderTasks();
+                } else if (tasksToUpdateDOM.length > 0) {
+                    tasksToUpdateDOM.forEach(tIndex => {
+                        updateTaskDOM(tIndex);
+                    });
+                }
             }
         }
         
@@ -1789,7 +1863,7 @@
             if (task.isGroup) {
                 const headerCheckbox = taskEl.querySelector('.group-header .checkbox');
                 if (headerCheckbox) {
-                    headerCheckbox.className = 'checkbox';
+                    headerCheckbox.className = 'checkbox ' + (task.tickStyle || '');
                     
                     let allChecked = true;
                     let anyChecked = false;
@@ -1884,7 +1958,7 @@
             
             updateTaskDOM(index);
             saveState(true);
-            syncTasks(task);
+            syncTasks(task, true);
         }
 
         function toggleSubtask(groupIndex, subtaskIndex) {
@@ -1896,7 +1970,7 @@
             
             updateTaskDOM(groupIndex);
             saveState(true);
-            syncTasks(task.subtasks[subtaskIndex]);
+            syncTasks(task.subtasks[subtaskIndex], true);
         }
         
         function updateGroupTaskState(groupIndex) {
@@ -2004,6 +2078,8 @@
                         select.value = 'normal';
                     }
                 }
+                const tickSelect = document.getElementById('task-tick-style-select');
+                if (tickSelect) tickSelect.value = 'green-tick';
             }
             
             const firstInput = Array.from(inputs).find(i => i.type !== 'hidden' && i.type !== 'checkbox');
